@@ -1,1 +1,1 @@
-# my-child-s-closet_app
+closet_app
