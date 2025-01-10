@@ -93,8 +93,8 @@ class MyPage extends StatelessWidget {
                       ),
                     ),
                   ),
-                  _buildPolicyItem('서비스 이용 약관', context),  // context 추가
-                  _buildPolicyItem('개인 정보 처리 방침', context),  // context 추가
+                  _buildPolicyItem('서비스 이용 약관', context),
+                  _buildPolicyItem('개인 정보 처리 방침', context),
                 ],
               ),
             ),
@@ -107,8 +107,8 @@ class MyPage extends StatelessWidget {
               color: Colors.white,
               child: Column(
                 children: [
-                  _buildPolicyItem('로그아웃', context),  // context 추가
-                  _buildPolicyItem('계정 탈퇴', context),  // context 추가
+                  _buildPolicyItem('로그아웃', context),
+                  _buildPolicyItem('계정 탈퇴', context),
                 ],
               ),
             ),
@@ -164,7 +164,6 @@ class MyPage extends StatelessWidget {
       child: InkWell(
         onTap: () async {
           if (title == '로그아웃') {
-            // 로그아웃 확인 다이얼로그
             showDialog(
               context: context,
               builder: (BuildContext context) {
@@ -174,14 +173,15 @@ class MyPage extends StatelessWidget {
                   actions: [
                     TextButton(
                       onPressed: () {
-                        Navigator.pop(context); // 다이얼로그 닫기
+                        Navigator.pop(context);
                       },
                       child: const Text('취소'),
                     ),
                     TextButton(
                       onPressed: () async {
+                        Navigator.pop(context);
                         final authService = Auth();
-                        await authService.logoutAndDeleteUser(context);
+                        await authService.logout(context);
                       },
                       child: const Text('확인'),
                     ),
@@ -190,26 +190,68 @@ class MyPage extends StatelessWidget {
               },
             );
           } else if (title == '계정 탈퇴') {
-            // 계정 탈퇴 확인 다이얼로그
             showDialog(
               context: context,
               builder: (BuildContext context) {
                 return AlertDialog(
                   title: const Text('계정 탈퇴'),
-                  content: const Text('정말 탈퇴하시겠습니까?'),
+                  content: const Text(
+                    '계정을 탈퇴하면 모든 데이터가 삭제되며 복구할 수 없습니다.\n정말 탈퇴하시겠습니까?',
+                    style: TextStyle(fontSize: 14),
+                  ),
                   actions: [
                     TextButton(
                       onPressed: () {
-                        Navigator.pop(context); // 다이얼로그 닫기
+                        Navigator.pop(context);
                       },
                       child: const Text('취소'),
                     ),
                     TextButton(
                       onPressed: () async {
+                        Navigator.pop(context); // 첫 번째 다이얼로그 닫기
+
+                        // 로딩 표시
+                        showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (BuildContext context) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          },
+                        );
+
                         final authService = Auth();
-                        await authService.logoutAndDeleteUser(context);
+                        await authService.deleteAccount(context);
+
+                        // 로딩 다이얼로그 닫기
+                        if (context.mounted) {
+                          Navigator.pop(context);
+
+                          // 성공 메시지 표시
+                          showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: const Text('탈퇴 완료'),
+                                content: const Text('계정이 성공적으로 탈퇴되었습니다.'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                    },
+                                    child: const Text('확인'),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                        }
                       },
-                      child: const Text('확인'),
+                      child: const Text(
+                        '탈퇴',
+                        style: TextStyle(color: Colors.red),
+                      ),
                     ),
                   ],
                 );
@@ -230,7 +272,6 @@ class MyPage extends StatelessWidget {
       ),
     );
   }
-
 
   Widget _buildNavItem(IconData icon, String label) {
     return Column(
