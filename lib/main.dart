@@ -4,7 +4,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:go_router/go_router.dart';
 import 'package:last3/screens/authentication/login_screen.dart';  // 실제 경로로 수정
-import 'package:last3/screens/home_screen.dart';
 import 'package:last3/screens/authentication/signup_screen.dart';
 import 'package:last3/screens/start_screen.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
@@ -54,8 +53,6 @@ class MyApp extends StatelessWidget {
               builder: (context, state) => LoginScreen()),
           GoRoute(path: '/signup',
               builder: (context, state) => SignupScreen()),
-          GoRoute(path: '/home',
-              builder: (context, state) => HomeScreen()),
           GoRoute(path: '/main',
               builder: (context, state) => MainScreen())
         ],

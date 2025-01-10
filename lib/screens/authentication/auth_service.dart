@@ -37,25 +37,30 @@ class Auth {
       String? token = await messaging.getToken();
       await _storeUserInfoInPrefs(user, token);
 
-      // Firebase Realtime Database에 사용자 데이터 저장 또는 확인
       final uid = user.uid;
-      final databaseRef = FirebaseDatabase.instance.ref("users/$uid");
-      final snapshot = await databaseRef.get();
+      bool userExists = await isRegisteredByUID(uid);
 
-      if (!snapshot.exists) {
-        // 새 사용자 데이터 저장
+      debugPrint('사용자 존재 여부: $userExists');
+
+      if (!userExists) {
+        // 새 사용자인 경우
+        final databaseRef = FirebaseDatabase.instance.ref("users/$uid");
         await databaseRef.set({
           "id": uid,
           "username": user.displayName ?? 'Unknown',
           "createdAt": DateTime.now().toIso8601String(),
+          "isNewUser": true,
         });
-      }
 
-      bool userExists = await isRegisteredByUID(uid);
-      if (userExists) {
-        context.go('/main'); // 기존 사용자
+        if (context.mounted) {
+          debugPrint('신규 사용자: /signup으로 이동');
+          context.go('/signup');
+        }
       } else {
-        context.go('/signup'); // 신규 사용자
+        if (context.mounted) {
+          debugPrint('기존 사용자: /main으로 이동');
+          context.go('/main');
+        }
       }
 
       return user;
@@ -106,6 +111,7 @@ class Auth {
           "id": firebaseUser.uid,
           "username": firebaseUser.displayName ?? 'Unknown',
           "createdAt": DateTime.now().toIso8601String(),
+          "isNewUser": true,
         });
         context.go('/signup'); // 신규 사용자
       }
@@ -121,20 +127,9 @@ class Auth {
   }
 
   // 로그아웃 및 사용자 삭제
-  Future<void> logoutAndDeleteUser(BuildContext context) async {
+  Future<void> logout(BuildContext context) async {
     try {
-      final user = _firebaseAuth.currentUser;
-      if (user != null) {
-        await user.delete();
-        debugPrint('사용자 계정 삭제 성공');
-      } else {
-        debugPrint('삭제할 사용자가 없습니다.');
-      }
-    } catch (e) {
-      debugPrint('사용자 계정 삭제 실패: $e');
-    }
-
-    try {
+      // Firebase 로그아웃
       await _firebaseAuth.signOut();
       debugPrint('Firebase 로그아웃 성공');
     } catch (e) {
@@ -142,6 +137,7 @@ class Auth {
     }
 
     try {
+      // Google 로그아웃
       final googleSignIn = GoogleSignIn();
       await googleSignIn.signOut();
       debugPrint('Google 로그아웃 성공');
@@ -150,13 +146,14 @@ class Auth {
     }
 
     try {
+      // 카카오 로그아웃
       await kakao_sdk.UserApi.instance.logout();
-      await kakao_sdk.UserApi.instance.unlink();
-      debugPrint('카카오 로그아웃 및 연결 해제 성공');
+      debugPrint('카카오 로그아웃 성공');
     } catch (e) {
-      debugPrint('카카오 로그아웃/연결 해제 실패: $e');
+      debugPrint('카카오 로그아웃 실패: $e');
     }
 
+    // 로컬 데이터 삭제
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
     debugPrint('로컬 데이터 삭제 완료');
@@ -166,12 +163,56 @@ class Auth {
     }
   }
 
+// 계정 탈퇴 기능
+  Future<void> deleteAccount(BuildContext context) async {
+    try {
+      final user = _firebaseAuth.currentUser;
+      if (user != null) {
+        // Firebase 계정 삭제
+        await user.delete();
+        debugPrint('Firebase 계정 삭제 성공');
+      } else {
+        debugPrint('삭제할 Firebase 계정이 없습니다.');
+        return;
+      }
+    } catch (e) {
+      debugPrint('Firebase 계정 삭제 실패: $e');
+    }
+
+    try {
+      // 카카오 연동 해제
+      await kakao_sdk.UserApi.instance.unlink();
+      debugPrint('카카오 연동 해제 성공');
+    } catch (e) {
+      debugPrint('카카오 연동 해제 실패: $e');
+    }
+
+    // 로그아웃 처리 (context.go를 제외한 나머지 로그아웃 로직)
+    try {
+      await _firebaseAuth.signOut();
+      final googleSignIn = GoogleSignIn();
+      await googleSignIn.signOut();
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+    } catch (e) {
+      debugPrint('로그아웃 처리 중 오류 발생: $e');
+    }
+
+    if (context.mounted) {
+      context.go('/start'); // '/login' 대신 '/start'로 변경
+    }
+  }
   // UID로 사용자 확인
   Future<bool> isRegisteredByUID(String uid) async {
     try {
       final databaseRef = FirebaseDatabase.instance.ref("users/$uid");
       final snapshot = await databaseRef.get();
-      return snapshot.exists;
+
+      if (snapshot.exists) {
+        final userData = snapshot.value as Map<dynamic, dynamic>;
+        return userData.containsKey('createdAt');
+      }
+      return false;
     } catch (e) {
       debugPrint('UID 확인 중 오류 발생: $e');
       return false;
