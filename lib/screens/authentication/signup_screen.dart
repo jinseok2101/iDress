@@ -75,7 +75,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       debugPrint('회원가입: 저장된 해시 비밀번호 = ${Auth().hashPassword(_passwordController.text)}');
 
       if (mounted) {
-        context.go('/home');
+        context.go('/main');
       }
     } catch (e) {
       if (mounted) {

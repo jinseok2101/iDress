@@ -37,25 +37,30 @@ class Auth {
       String? token = await messaging.getToken();
       await _storeUserInfoInPrefs(user, token);
 
-      // Firebase Realtime Database에 사용자 데이터 저장 또는 확인
       final uid = user.uid;
-      final databaseRef = FirebaseDatabase.instance.ref("users/$uid");
-      final snapshot = await databaseRef.get();
+      bool userExists = await isRegisteredByUID(uid);
 
-      if (!snapshot.exists) {
-        // 새 사용자 데이터 저장
+      debugPrint('사용자 존재 여부: $userExists');
+
+      if (!userExists) {
+        // 새 사용자인 경우
+        final databaseRef = FirebaseDatabase.instance.ref("users/$uid");
         await databaseRef.set({
           "id": uid,
           "username": user.displayName ?? 'Unknown',
           "createdAt": DateTime.now().toIso8601String(),
+          "isNewUser": true,
         });
-      }
 
-      bool userExists = await isRegisteredByUID(uid);
-      if (userExists) {
-        context.go('/main'); // 기존 사용자
+        if (context.mounted) {
+          debugPrint('신규 사용자: /signup으로 이동');
+          context.go('/signup');
+        }
       } else {
-        context.go('/signup'); // 신규 사용자
+        if (context.mounted) {
+          debugPrint('기존 사용자: /main으로 이동');
+          context.go('/main');
+        }
       }
 
       return user;
@@ -106,6 +111,7 @@ class Auth {
           "id": firebaseUser.uid,
           "username": firebaseUser.displayName ?? 'Unknown',
           "createdAt": DateTime.now().toIso8601String(),
+          "isNewUser": true,
         });
         context.go('/signup'); // 신규 사용자
       }
@@ -171,7 +177,12 @@ class Auth {
     try {
       final databaseRef = FirebaseDatabase.instance.ref("users/$uid");
       final snapshot = await databaseRef.get();
-      return snapshot.exists;
+
+      if (snapshot.exists) {
+        final userData = snapshot.value as Map<dynamic, dynamic>;
+        return userData.containsKey('createdAt');
+      }
+      return false;
     } catch (e) {
       debugPrint('UID 확인 중 오류 발생: $e');
       return false;
