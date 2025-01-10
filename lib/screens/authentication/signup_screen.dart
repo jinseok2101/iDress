@@ -1,10 +1,13 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:last3/screens/authentication/auth_service.dart';
-
 
 class SignupScreen extends ConsumerStatefulWidget {
   const SignupScreen({super.key});
@@ -13,13 +16,13 @@ class SignupScreen extends ConsumerStatefulWidget {
   ConsumerState<SignupScreen> createState() => _SignupScreenState();
 }
 
-// Firebase Realtime Database에 사용자 정보 저장 함수
 Future<void> saveUserToFirebase({
   required String uid,
   required String username,
   required String phone,
   String? id,
   String? passwordHash,
+  String? profileImageUrl,
 }) async {
   final databaseRef = FirebaseDatabase.instance.ref("users/$uid");
   final timestamp = DateTime.now().toIso8601String();
@@ -27,10 +30,19 @@ Future<void> saveUserToFirebase({
   await databaseRef.set({
     "username": username,
     "phone": phone,
-    if (id != null) "id": id, // 일반 로그인 사용자만 저장
-    if (passwordHash != null) "passwordHash": passwordHash, // 일반 로그인 사용자만 저장
+    if (id != null) "id": id,
+    if (passwordHash != null) "passwordHash": passwordHash,
+    if (profileImageUrl != null) "profileImageUrl": profileImageUrl,
     "createdAt": timestamp,
   });
+}
+
+Future<String> uploadProfileImage(File imageFile) async {
+  final storageRef = FirebaseStorage.instance.ref();
+  final fileName = 'profile_images/${DateTime.now().millisecondsSinceEpoch}.jpg';
+  final uploadTask = storageRef.child(fileName).putFile(imageFile);
+  final snapshot = await uploadTask;
+  return await snapshot.ref.getDownloadURL();
 }
 
 class _SignupScreenState extends ConsumerState<SignupScreen> {
@@ -41,7 +53,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
+  File? _selectedImage;
   bool _isLoading = false;
+  bool _isUploadingImage = false;
 
   @override
   void dispose() {
@@ -51,6 +65,17 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      setState(() {
+        _selectedImage = File(pickedFile.path);
+      });
+    }
   }
 
   Future<void> _submitForm() async {
@@ -64,15 +89,22 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
         throw Exception('사용자가 인증되지 않았습니다.');
       }
 
-      final uid = user.uid; // Firebase Authentication에서 고유 UID 가져오기
+      String? profileImageUrl;
+      if (_selectedImage != null) {
+        setState(() => _isUploadingImage = true);
+        profileImageUrl = await uploadProfileImage(_selectedImage!);
+        setState(() => _isUploadingImage = false);
+      }
+
+      final uid = user.uid;
       await saveUserToFirebase(
         uid: uid,
         username: _usernameController.text,
         phone: _phoneController.text,
         id: _idController.text,
-        passwordHash: Auth().hashPassword(_passwordController.text), // 비밀번호 해시 추가 필요
+        passwordHash: Auth().hashPassword(_passwordController.text),
+        profileImageUrl: profileImageUrl,
       );
-      debugPrint('회원가입: 저장된 해시 비밀번호 = ${Auth().hashPassword(_passwordController.text)}');
 
       if (mounted) {
         context.go('/home');
@@ -110,6 +142,23 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 48),
+                  GestureDetector(
+                    onTap: _pickImage,
+                    child: CircleAvatar(
+                      radius: 50,
+                      backgroundImage:
+                      _selectedImage != null ? FileImage(_selectedImage!) : null,
+                      child: _selectedImage == null
+                          ? const Icon(Icons.camera_alt, size: 40, color: Colors.grey)
+                          : null,
+                    ),
+                  ),
+                  if (_isUploadingImage)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16.0),
+                      child: CircularProgressIndicator(),
+                    ),
+                  const SizedBox(height: 16),
                   _buildInputField(
                     controller: _usernameController,
                     label: '닉네임',
@@ -138,7 +187,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                       if (value == null || value.isEmpty) {
                         return '전화번호를 입력해주세요';
                       }
-                      final phoneRegExp = RegExp(r'^\d{3}-\d{3,4}-\d{4}$');
+                      final phoneRegExp = RegExp(r'^\\d{3}-\\d{3,4}-\\d{4}\$');
                       if (!phoneRegExp.hasMatch(value)) {
                         return '올바른 전화번호 형식이 아닙니다';
                       }
