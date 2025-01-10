@@ -53,7 +53,7 @@ class Auth {
 
       bool userExists = await isRegisteredByUID(uid);
       if (userExists) {
-        context.go('/home'); // 기존 사용자
+        context.go('/main'); // 기존 사용자
       } else {
         context.go('/signup'); // 신규 사용자
       }
@@ -99,7 +99,7 @@ class Auth {
       // 사용자 유형 확인 및 화면 이동
       bool userExists = await isRegisteredByUID(firebaseUser.uid);
       if (userExists) {
-        context.go('/home'); // 기존 사용자
+        context.go('/main'); // 기존 사용자
       } else {
         final databaseRef = FirebaseDatabase.instance.ref("users/${firebaseUser.uid}");
         await databaseRef.set({

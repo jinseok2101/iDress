@@ -28,7 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (await _authService.signInWithID(id, password)) {
       debugPrint('로그인 성공');
-      context.go('/home'); // 로그인 성공 시 홈 화면으로 이동
+      context.go('/main'); // 로그인 성공 시 홈 화면으로 이동
     } else {
       debugPrint('로그인 실패: ID = $id, 비밀번호 불일치');
       _showErrorSnackbar('로그인 정보가 올바르지 않습니다.');

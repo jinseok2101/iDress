@@ -8,6 +8,7 @@ import 'package:last3/screens/home_screen.dart';
 import 'package:last3/screens/authentication/signup_screen.dart';
 import 'package:last3/screens/start_screen.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
+import 'package:last3/screens/main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -55,6 +56,8 @@ class MyApp extends StatelessWidget {
               builder: (context, state) => SignupScreen()),
           GoRoute(path: '/home',
               builder: (context, state) => HomeScreen()),
+          GoRoute(path: '/main',
+              builder: (context, state) => MainScreen())
         ],
       ),
     );
