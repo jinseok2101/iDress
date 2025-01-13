@@ -11,7 +11,8 @@ class ClosetPage extends StatefulWidget {
 }
 
 class _ClosetPageState extends State<ClosetPage> {
-  String selectedChild = '자녀 1';
+  String selectedChildName = '아이 이름'; // Firebase에서 불러오는 로직 추가
+
   String searchQuery = '';
   String selectedCategory = '한벌옷';
 
@@ -47,8 +48,8 @@ class _ClosetPageState extends State<ClosetPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFFDF6F0),
       appBar: AppBar(
-        title: const Text(
-          '옷장',
+        title:  Text(
+          '${selectedChildName}의 옷장',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -160,50 +161,35 @@ class _ClosetPageState extends State<ClosetPage> {
           // 자녀 선택 및 옷 추가 버튼
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                DropdownButton<String>(
-                  value: selectedChild,
-                  items: ['자녀 1', '자녀 2']
-                      .map((e) => DropdownMenuItem(
-                    value: e,
-                    child: Text(e),
-                  ))
-                      .toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      selectedChild = value!;
-                    });
-                  },
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const AddClothingPage(),
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AddClothingPage(),
                     ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
-                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Text(
-                    '+ 옷 추가',
-                    style: TextStyle(color: Colors.white),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
                   ),
                 ),
-              ],
+                child: const Text(
+                  '+ 옷 추가',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
             ),
           ),
+
 
           // 옷 그리드
           Expanded(

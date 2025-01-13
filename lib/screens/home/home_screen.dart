@@ -1,0 +1,201 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  List<Map<String, String>> childrenProfiles = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadChildrenProfiles();
+  }
+
+  Future<void> _loadChildrenProfiles() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final childrenRef =
+      FirebaseDatabase.instance.ref('users/${user.uid}/children');
+      final snapshot = await childrenRef.get();
+
+      if (snapshot.exists) {
+        final Map<dynamic, dynamic> children =
+        snapshot.value as Map<dynamic, dynamic>;
+        final profiles = await Future.wait(children.keys.map((childKey) async {
+          final childSnapshot =
+          await FirebaseDatabase.instance.ref('children/$childKey').get();
+          if (childSnapshot.exists) {
+            final childData = childSnapshot.value as Map<dynamic, dynamic>;
+            return {
+              'name': childData['name'] as String,
+              'imageUrl': childData['imageUrl'] as String,
+            };
+          }
+          return null;
+        }));
+
+        setState(() {
+          childrenProfiles =
+              profiles.whereType<Map<String, String>>().toList();
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      debugPrint('Error loading profiles: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF4E8D0),
+      body: Center(
+        child: Container(
+          width: screenSize.width * 0.9,
+          height: screenSize.height * 0.9,
+          decoration: BoxDecoration(
+            color: const Color(0xFFFEFBF0), // 배경 색
+            borderRadius: BorderRadius.circular(20), // 전체 테두리 둥글게
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 30.0, bottom: 20.0),
+                child: Stack(
+                  children: [
+                    Align(
+                      alignment: Alignment.center,
+                      child: Image.asset(
+                        'assets/images/logo2.png',
+                        height: 100,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: IconButton(
+                        icon: const Icon(
+                          Icons.person_outline,
+                          size: 30,
+                          color: Colors.black87,
+                        ),
+                        onPressed: () => context.go('/mypage'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              Expanded(
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : childrenProfiles.isEmpty
+                    ? Center(
+                  child: Text(
+                    '등록된 아이가 없습니다.\n아이를 등록해주세요.',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Colors.black54,
+                    ),
+                  ),
+                )
+                    : GridView.builder(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20, vertical: 10),
+                  gridDelegate:
+                  const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2, // 2열로 정렬
+                    crossAxisSpacing: 10, // 열 간격
+                    mainAxisSpacing: 20, // 행 간격
+                    childAspectRatio: 1, // 정사각형 비율
+                  ),
+                  itemCount: childrenProfiles.length + 1, // 등록 버튼 포함
+                  itemBuilder: (context, index) {
+                    if (index < childrenProfiles.length) {
+                      final child = childrenProfiles[index];
+                      return GestureDetector(
+                        onTap: () {
+                          context.go(
+                            '/main',
+                            extra: {'childName': child['name'], 'childImage': child['imageUrl']},
+                          );
+                        },
+                        child: Column(
+                          children: [
+                            CircleAvatar(
+                              radius: 40,
+                              backgroundImage: NetworkImage(child['imageUrl']!),
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              child['name']!,
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                    else {
+                      return GestureDetector(
+                        onTap: () => context.go('/register'),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            CircleAvatar(
+                              radius: 40,
+                              backgroundColor: Colors.white,
+                              child: Icon(
+                                Icons.add,
+                                size: 40,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            SizedBox(height: 5),
+                            Text(
+                              '등록하기',
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

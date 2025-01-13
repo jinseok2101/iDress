@@ -14,7 +14,6 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _screens = [
     ClosetPage(),
     FittingRoomPage(),
-    MyPage(),
   ];
 
   void _onItemTapped(int index) {
@@ -39,10 +38,6 @@ class _MainScreenState extends State<MainScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.door_sliding),
             label: '피팅룸',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: '마이페이지',
           ),
         ],
       ),

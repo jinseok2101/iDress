@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:last3/screens/authentication/auth_service.dart';
-
+import 'package:go_router/go_router.dart';
 class MyPage extends StatelessWidget {
   const MyPage({super.key});
 
@@ -8,12 +8,20 @@ class MyPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFDF6F0),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFFDF6F0),
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => context.go('/home'), // 홈으로 이동
+        ),
+      ),
       body: SingleChildScrollView(
         child: Column(
           children: [
             // My Page 헤더
             const Padding(
-              padding: EdgeInsets.only(left: 20, top: 60, bottom: 20),
+              padding: EdgeInsets.only(left: 20, top: 20, bottom: 20),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(

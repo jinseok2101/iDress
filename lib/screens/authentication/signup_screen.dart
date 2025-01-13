@@ -107,7 +107,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       );
 
       if (mounted) {
-        context.go('/main');
+        context.go('/home');
       }
     } catch (e) {
       if (mounted) {
@@ -187,12 +187,13 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                       if (value == null || value.isEmpty) {
                         return '전화번호를 입력해주세요';
                       }
-                      final phoneRegExp = RegExp(r'^\\d{3}-\\d{3,4}-\\d{4}\$');
+                      final phoneRegExp = RegExp(r'^\d{3}-\d{3,4}-\d{4}$');
                       if (!phoneRegExp.hasMatch(value)) {
                         return '올바른 전화번호 형식이 아닙니다';
                       }
                       return null;
                     },
+
                   ),
                   const SizedBox(height: 16),
                   _buildInputField(

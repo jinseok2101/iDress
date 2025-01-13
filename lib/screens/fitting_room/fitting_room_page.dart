@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'fittingroom/fitting_result_page.dart';
+import 'fitting_result_page.dart';
 
 class FittingRoomPage extends StatelessWidget {
   const FittingRoomPage({super.key});
