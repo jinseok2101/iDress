@@ -7,10 +7,10 @@ import 'package:last3/screens/authentication/login_screen.dart';  // 실제 경�
 import 'package:last3/screens/authentication/signup_screen.dart';
 import 'package:last3/screens/start_screen.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
-import 'package:last3/screens/closet_main_screen.dart';
 import 'package:last3/screens/home/child_register_screen.dart';
 import 'package:last3/screens/home/home_screen.dart';
 import 'package:last3/screens/my_page.dart';
+import 'screens/main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -48,7 +48,7 @@ class MyApp extends StatelessWidget {
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       routerConfig: GoRouter(
-        initialLocation: '/register',
+        initialLocation: '/main',
         routes: [
           GoRoute(path: '/start',
               builder: (context, state) => StartScreen()),
