@@ -58,8 +58,8 @@ class Auth {
         }
       } else {
         if (context.mounted) {
-          debugPrint('기존 사용자: /main으로 이동');
-          context.go('/main');
+          debugPrint('기존 사용자: /home으로 이동');
+          context.go('/home');
         }
       }
 
@@ -104,7 +104,7 @@ class Auth {
       // 사용자 유형 확인 및 화면 이동
       bool userExists = await isRegisteredByUID(firebaseUser.uid);
       if (userExists) {
-        context.go('/main'); // 기존 사용자
+        context.go('/home'); // 기존 사용자
       } else {
         final databaseRef = FirebaseDatabase.instance.ref("users/${firebaseUser.uid}");
         await databaseRef.set({

@@ -245,7 +245,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 });
                               } else {
                                 context.go(
-                                  '/closet',
+                                  '/main',
                                   extra: {
                                     'childName': child['name'],
                                     'childImage': child['imageUrl'],
