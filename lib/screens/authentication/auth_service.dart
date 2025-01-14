@@ -260,6 +260,9 @@ class Auth {
     return sha256.convert(bytes).toString();
   }
 
+
+
+
   Future<void> _storeUserInfoInPrefs(firebase_auth.User user, String? token) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('user_email', user.email ?? '');
