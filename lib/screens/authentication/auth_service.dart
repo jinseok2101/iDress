@@ -58,8 +58,8 @@ class Auth {
         }
       } else {
         if (context.mounted) {
-          debugPrint('기존 사용자: /home으로 이동');
-          context.go('/home');
+          debugPrint('기존 사용자: /main으로 이동');
+          context.go('/main');
         }
       }
 
@@ -104,7 +104,7 @@ class Auth {
       // 사용자 유형 확인 및 화면 이동
       bool userExists = await isRegisteredByUID(firebaseUser.uid);
       if (userExists) {
-        context.go('/home'); // 기존 사용자
+        context.go('/main'); // 기존 사용자
       } else {
         final databaseRef = FirebaseDatabase.instance.ref("users/${firebaseUser.uid}");
         await databaseRef.set({
@@ -224,13 +224,6 @@ class Auth {
     try {
       final databaseRef = FirebaseDatabase.instance.ref("users");
       final snapshot = await databaseRef.orderByChild("id").equalTo(id).get();
-      if (snapshot.value != null) {
-        // 데이터를 Map<String, dynamic>으로 변환
-        final userMap = Map<String, dynamic>.from((snapshot.value as Map).values.first as Map);
-        print("사용자 데이터: $userMap");
-      } else {
-        print("사용자를 찾을 수 없습니다.");
-      }
 
       if (snapshot.exists) {
         final userData = Map<String, dynamic>.from(snapshot.value as Map);

@@ -28,12 +28,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (await _authService.signInWithID(id, password)) {
       debugPrint('로그인 성공');
-      context.go('/home'); // 로그인 성공 시 홈 화면으로 이동
+      context.go('/main'); // 로그인 성공 시 홈 화면으로 이동
     } else {
       debugPrint('로그인 실패: ID = $id, 비밀번호 불일치');
       _showErrorSnackbar('로그인 정보가 올바르지 않습니다.');
     }
   }
+
+
+
 
   Future<void> _handleGoogleSignIn() async {
     try {
@@ -59,7 +62,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF2E4C4), // 배경 수정
+      backgroundColor: const Color(0xFFFDF6ED), // 부드러운 베이지색 배경
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
@@ -69,12 +72,26 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 const SizedBox(height: 40),
                 // 로고 섹션
-                Center(
-                  child: Image.asset(
-                    'assets/images/logo.png',
-                    width: 100, // 로고 크기 유지
-                    height: 100,
-                    fit: BoxFit.contain,
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Text(
+                    '앱 로고 표시 부분',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
                 ),
                 const SizedBox(height: 40),

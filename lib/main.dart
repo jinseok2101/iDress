@@ -48,7 +48,7 @@ class MyApp extends StatelessWidget {
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       routerConfig: GoRouter(
-        initialLocation: '/start',
+        initialLocation: '/register',
         routes: [
           GoRoute(path: '/start',
               builder: (context, state) => StartScreen()),
