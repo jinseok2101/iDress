@@ -6,7 +6,12 @@ import 'closetpage/add_clothing_page.dart';
 import 'closetpage/fitting_in_closet_top.dart';
 
 class ClosetPage extends StatefulWidget {
-  const ClosetPage({Key? key}) : super(key: key);
+  final Map<String, dynamic> childInfo;
+
+  const ClosetPage({
+    Key? key,
+    required this.childInfo,
+  }) : super(key: key);
 
   @override
   State<ClosetPage> createState() => _ClosetPageState();
@@ -14,6 +19,9 @@ class ClosetPage extends StatefulWidget {
 
 class _ClosetPageState extends State<ClosetPage> {
   final String _userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+  String? _childProfileUrl;
+  String? _childName;
+  String? _childId;
   bool isDeleteMode = false;
   bool isSearchVisible = false;
   Set<String> selectedItems = {};
@@ -21,27 +29,45 @@ class _ClosetPageState extends State<ClosetPage> {
   final TextEditingController _searchController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    _initializeChildData();
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
   }
 
+  void _initializeChildData() {
+    setState(() {
+      _childProfileUrl = widget.childInfo['childImage'];
+      _childName = widget.childInfo['childName'];
+      _childId = widget.childInfo['childId'];
+    });
+  }
+
+  DatabaseReference get _clothingRef => FirebaseDatabase.instance
+      .ref()
+      .child('users')
+      .child(_userId)
+      .child('children')
+      .child(_childId!)
+      .child('clothing');
+
+  Reference get _storageRef => FirebaseStorage.instance
+      .ref()
+      .child('users')
+      .child(_userId)
+      .child('children')
+      .child(_childId!)
+      .child('clothing');
+
   Future<void> deleteSelectedItems() async {
     try {
-      final databaseRef = FirebaseDatabase.instance
-          .ref()
-          .child('users')
-          .child(_userId)
-          .child('clothing');
-
-      final storageRef = FirebaseStorage.instance
-          .ref()
-          .child('users')
-          .child(_userId)
-          .child('clothing');
-
       for (String key in selectedItems) {
-        final snapshot = await databaseRef.child(key).get();
+        final snapshot = await _clothingRef.child(key).get();
         if (snapshot.exists) {
           final data = snapshot.value as Map<dynamic, dynamic>;
           final imageUrl = data['imageUrl'] as String;
@@ -56,7 +82,7 @@ class _ClosetPageState extends State<ClosetPage> {
             print('Storage 삭제 오류: $e');
           }
 
-          await databaseRef.child(key).remove();
+          await _clothingRef.child(key).remove();
         }
       }
 
@@ -75,6 +101,7 @@ class _ClosetPageState extends State<ClosetPage> {
       );
     }
   }
+
   List<MapEntry<dynamic, dynamic>> filterClothing(
       List<MapEntry<dynamic, dynamic>> clothing, String searchQuery) {
     if (searchQuery.isEmpty) return clothing;
@@ -97,8 +124,6 @@ class _ClosetPageState extends State<ClosetPage> {
         child: Column(
           children: [
             SizedBox(height: 24),
-
-            // 상단 프로필 및 액션 버튼
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: Row(
@@ -107,11 +132,14 @@ class _ClosetPageState extends State<ClosetPage> {
                     children: [
                       CircleAvatar(
                         radius: 35,
-                        backgroundImage: AssetImage('assets/images/profile.jpg'),
+                        backgroundImage: _childProfileUrl != null
+                            ? NetworkImage(_childProfileUrl!)
+                            : AssetImage('assets/images/profile.jpg')
+                        as ImageProvider,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'OOO의 옷장',
+                        _childName != null ? '${_childName}의 옷장' : 'OOO의 옷장',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
@@ -247,12 +275,8 @@ class _ClosetPageState extends State<ClosetPage> {
             // 그리드 뷰 (옷 목록)
             Expanded(
               child: StreamBuilder<DatabaseEvent>(
-                stream: FirebaseDatabase.instance
-                    .ref()
-                    .child('users')
-                    .child(_userId)
-                    .child('clothing')
-                    .onValue,
+                // 여기 경로 수정
+                stream: _clothingRef.onValue,  // 수정된 참조 사용
                 builder: (context, snapshot) {
                   if (snapshot.hasError) {
                     return Center(child: Text('에러가 발생했습니다'));
@@ -431,7 +455,8 @@ class _ClosetPageState extends State<ClosetPage> {
           ],
         ),
       ),
-      bottomNavigationBar: isDeleteMode ? Container(
+      bottomNavigationBar: isDeleteMode
+          ? Container(
         padding: EdgeInsets.all(16),
         color: Colors.white,
         child: ElevatedButton(
@@ -451,7 +476,8 @@ class _ClosetPageState extends State<ClosetPage> {
             ),
           ),
         ),
-      ) : null,
+      )
+          : null,
     );
   }
 
@@ -468,7 +494,13 @@ class _ClosetPageState extends State<ClosetPage> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => AddClothingPage(),
+              builder: (context) => AddClothingPage(
+                childInfo: {
+                  'childId': _childId,
+                  'childName': _childName,
+                  'childImage': _childProfileUrl,
+                },
+              ),
             ),
           );
         } else if (label == '피팅하기') {
@@ -477,6 +509,8 @@ class _ClosetPageState extends State<ClosetPage> {
                 .ref()
                 .child('users')
                 .child(_userId)
+                .child('children')
+                .child(_childId!)
                 .child('clothing');
 
             final snapshot = await clothingRef.get();
@@ -498,6 +532,7 @@ class _ClosetPageState extends State<ClosetPage> {
                   MaterialPageRoute(
                     builder: (context) => FittingInClosetTop(
                       userId: _userId,
+                      childId: _childId!, // 자녀 ID 전달
                       topClothes: topClothes,
                     ),
                   ),

@@ -58,8 +58,14 @@ class MyApp extends StatelessWidget {
               builder: (context, state) => LoginScreen()),
           GoRoute(path: '/signup',
               builder: (context, state) => SignupScreen()),
-          GoRoute(path: '/main',
-              builder: (context, state) => MainScreen()),
+          GoRoute(
+              path: '/main',
+              builder: (context, state) {
+                // extra 데이터를 Map<String, dynamic>으로 캐스팅
+                final Map<String, dynamic>? childInfo = state.extra as Map<String, dynamic>?;
+                return MainScreen(childInfo: childInfo);
+              }
+          ),
           GoRoute(path: '/home',
               builder: (context, state) => HomeScreen()),
           GoRoute(path: '/register',

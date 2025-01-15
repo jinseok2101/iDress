@@ -13,8 +13,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   List<Map<String, dynamic>> childrenProfiles = [];
   bool _isLoading = true;
-  bool isSelecting = false; // 선택 모드 여부
-  Set<int> _selectedProfileIndices = {}; // 선택된 프로필 인덱스
+  bool isSelecting = false;
+  Set<int> _selectedProfileIndices = {};
 
   @override
   void initState() {
@@ -27,7 +27,6 @@ class _HomeScreenState extends State<HomeScreen> {
     if (user == null) return;
 
     try {
-      // 변경된 데이터베이스 경로에 따라 'children' 데이터를 가져옴
       final childrenRef = FirebaseDatabase.instance.ref('users/${user.uid}/children');
       final snapshot = await childrenRef.get();
 
@@ -42,6 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
             'key': entry.key,
             'name': childData['name'] ?? '',
             'imageUrl': childData['profileImageUrl'] ?? '',
+            'fullBodyImageUrl': childData['fullBodyImageUrl'] ?? '',  // 전신사진 URL 추가
           };
         }).toList();
 
@@ -62,7 +62,6 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     }
   }
-
 
   void _toggleSelecting() {
     setState(() {
@@ -86,7 +85,9 @@ class _HomeScreenState extends State<HomeScreen> {
         final childKey = childrenProfiles[index]['key'];
         if (childKey != null) {
           await FirebaseDatabase.instance.ref('children/$childKey').remove();
-          await FirebaseDatabase.instance.ref('users/${user.uid}/children/$childKey').remove();
+          await FirebaseDatabase.instance
+              .ref('users/${user.uid}/children/$childKey')
+              .remove();
         }
       }
 
@@ -238,8 +239,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               if (isSelecting) {
                                 setState(() {
                                   if (isSelected) {
-                                    _selectedProfileIndices
-                                        .remove(index);
+                                    _selectedProfileIndices.remove(index);
                                   } else {
                                     _selectedProfileIndices.add(index);
                                   }
@@ -250,6 +250,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                   extra: {
                                     'childName': child['name'],
                                     'childImage': child['imageUrl'],
+                                    'childId': child['key'],
+                                    'fullBodyImageUrl': child['fullBodyImageUrl'],  // 전신사진 URL 추가
                                   },
                                 );
                               }
@@ -297,7 +299,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           return GestureDetector(
                             onTap: () => context.go('/register'),
                             child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisAlignment:
+                              MainAxisAlignment.center,
                               children: const [
                                 CircleAvatar(
                                   radius: 40,

@@ -8,7 +8,12 @@ import 'package:uuid/uuid.dart';
 import 'fittingroom/fitting_result_page.dart';
 
 class FittingRoomPage extends StatefulWidget {
-  const FittingRoomPage({super.key});
+  final String? fullBodyImageUrl;
+
+  const FittingRoomPage({
+    Key? key,
+    this.fullBodyImageUrl,
+  }) : super(key: key);
 
   @override
   State<FittingRoomPage> createState() => _FittingRoomPageState();
@@ -39,67 +44,12 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
             bottomImage = File(pickedFile.path);
           }
         });
-        await _uploadImage(File(pickedFile.path), type);
       }
     } catch (e) {
       debugPrint('이미지 선택 오류: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('이미지 선택 중 오류가 발생했습니다')),
       );
-    }
-  }
-
-  Future<String?> _uploadImage(File imageFile, String type) async {
-    if (_userId.isEmpty) return null;
-
-    setState(() {
-      _isUploading = true;
-    });
-
-    try {
-      final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-      final String uuid = const Uuid().v4();
-      final String extension = path.extension(imageFile.path);
-      final String fileName = '${_userId}_${type}_${timestamp}_$uuid$extension';
-
-      final Reference storageRef = _storage
-          .ref()
-          .child('users')
-          .child(_userId)
-          .child('fitting')
-          .child(fileName);
-
-      final UploadTask uploadTask = storageRef.putFile(
-        imageFile,
-        SettableMetadata(
-          contentType: 'image/${extension.substring(1)}',
-          customMetadata: {
-            'userId': _userId,
-            'type': type,
-            'uploadedAt': DateTime.now().toIso8601String(),
-          },
-        ),
-      );
-
-      final TaskSnapshot snapshot = await uploadTask;
-      final String downloadUrl = await snapshot.ref.getDownloadURL();
-
-      debugPrint('이미지 업로드 성공: $downloadUrl');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('이미지가 업로드되었습니다')),
-      );
-
-      return downloadUrl;
-    } catch (e) {
-      debugPrint('이미지 업로드 오류: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('이미지 업로드 중 오류가 발생했습니다')),
-      );
-      return null;
-    } finally {
-      setState(() {
-        _isUploading = false;
-      });
     }
   }
 
@@ -141,7 +91,7 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
       ),
       body: Column(
         children: [
-          // 메인 이미지
+          // 메인 이미지 영역
           Expanded(
             flex: 3,
             child: Container(
@@ -152,14 +102,36 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.asset(
-                  'assets/images/default_fitting.png',
+                child: widget.fullBodyImageUrl != null
+                    ? Image.network(
+                  widget.fullBodyImageUrl!,
                   fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: Colors.grey[200],
+                      child: const Center(
+                        child: Icon(
+                          Icons.image_not_supported,
+                          size: 50,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    );
+                  },
+                )
+                    : Container(
+                  color: Colors.grey[200],
+                  child: const Center(
+                    child: Icon(
+                      Icons.image_not_supported,
+                      size: 50,
+                      color: Colors.grey,
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
-
           // 하단 버튼들
           Padding(
             padding: const EdgeInsets.all(16.0),
@@ -240,20 +212,6 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
                   ],
                 ),
               ),
-            if (_isUploading)
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(7),
-                ),
-                child: const Center(
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                  ),
-                ),
-              ),
           ],
         ),
       ),
@@ -277,7 +235,6 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
       ),
       child: InkWell(
         onTap: () {
-          // 상의와 하의 이미지가 모두 있는지 확인
           if (topImage == null || bottomImage == null) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -287,15 +244,14 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
             );
             return;
           }
-
-          // 피팅 결과 페이지로 이동
           Navigator.push(
             context,
             PageRouteBuilder(
-              pageBuilder: (context, animation, secondaryAnimation) => FittingResultPage(
-                topImageFile: topImage!,
-                bottomImageFile: bottomImage!,
-              ),
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  FittingResultPage(
+                    topImageFile: topImage!,
+                    bottomImageFile: bottomImage!,
+                  ),
               opaque: false,
             ),
           );

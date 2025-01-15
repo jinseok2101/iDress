@@ -9,11 +9,13 @@ import 'fitting_in_closet_pants.dart';
 
 class FittingInClosetTop extends StatefulWidget {
   final String userId;
+  final String childId; // 추가: 자녀 ID
   final List<Map<dynamic, dynamic>> topClothes;
 
   const FittingInClosetTop({
     Key? key,
     required this.userId,
+    required this.childId, // 추가
     required this.topClothes,
   }) : super(key: key);
 
@@ -24,7 +26,7 @@ class FittingInClosetTop extends StatefulWidget {
 class _FittingInClosetTopState extends State<FittingInClosetTop> {
   final ImagePicker _picker = ImagePicker();
   bool _isUploading = false;
-  String? selectedTopId;  // 선택된 상의의 ID
+  String? selectedTopId;
 
   Future<void> _uploadImage() async {
     try {
@@ -43,12 +45,15 @@ class _FittingInClosetTopState extends State<FittingInClosetTop> {
         final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
         final String uuid = const Uuid().v4();
         final String extension = path.extension(pickedFile.path);
-        final String fileName = '${widget.userId}_top_${timestamp}_$uuid$extension';
+        final String fileName = '${widget.userId}_${widget.childId}_top_${timestamp}_$uuid$extension';
 
+        // 수정: Storage 경로에 childId 추가
         final Reference storageRef = FirebaseStorage.instance
             .ref()
             .child('users')
             .child(widget.userId)
+            .child('children')
+            .child(widget.childId)
             .child('clothing')
             .child(fileName);
 
@@ -58,6 +63,7 @@ class _FittingInClosetTopState extends State<FittingInClosetTop> {
             contentType: 'image/${extension.substring(1)}',
             customMetadata: {
               'userId': widget.userId,
+              'childId': widget.childId,
               'category': '상의',
               'uploadedAt': DateTime.now().toIso8601String(),
             },
@@ -67,10 +73,13 @@ class _FittingInClosetTopState extends State<FittingInClosetTop> {
         final TaskSnapshot snapshot = await uploadTask;
         final String downloadUrl = await snapshot.ref.getDownloadURL();
 
+        // 수정: Database 경로에 childId 추가
         final databaseRef = FirebaseDatabase.instance
             .ref()
             .child('users')
             .child(widget.userId)
+            .child('children')
+            .child(widget.childId)
             .child('clothing');
 
         await databaseRef.push().set({
@@ -79,6 +88,7 @@ class _FittingInClosetTopState extends State<FittingInClosetTop> {
           'name': '새 상의',
           'size': '',
           'createdAt': ServerValue.timestamp,
+          'childId': widget.childId,
         });
 
         ScaffoldMessenger.of(context).showSnackBar(

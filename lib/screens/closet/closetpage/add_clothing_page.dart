@@ -8,7 +8,12 @@ import 'package:uuid/uuid.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class AddClothingPage extends StatefulWidget {
-  const AddClothingPage({Key? key}) : super(key: key);
+  final Map<String, dynamic> childInfo; // 자녀 정보 추가
+
+  const AddClothingPage({
+    Key? key,
+    required this.childInfo, // 생성자에 자녀 정보 매개변수 추가
+  }) : super(key: key);
 
   @override
   State<AddClothingPage> createState() => _AddClothingPageState();
@@ -30,7 +35,6 @@ class _AddClothingPageState extends State<AddClothingPage> {
     {'label': '신발', 'icon': Icons.checkroom},
   ];
 
-  // 이미지 선택 메서드
   Future<void> _pickImage() async {
     try {
       final XFile? pickedFile = await _picker.pickImage(
@@ -52,7 +56,6 @@ class _AddClothingPageState extends State<AddClothingPage> {
     }
   }
 
-  // 이미지 업로드 메서드
   Future<String?> _uploadImage() async {
     if (_imageFile == null || _userId.isEmpty) return null;
 
@@ -64,13 +67,16 @@ class _AddClothingPageState extends State<AddClothingPage> {
       final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
       final String uuid = const Uuid().v4();
       final String extension = path.extension(_imageFile!.path);
-      final String fileName = '${_userId}_${timestamp}_$uuid$extension';
+      final String fileName = '${_userId}_${widget.childInfo['childId']}_${timestamp}_$uuid$extension';
 
+      // Storage 경로를 자녀별로 구분
       final Reference storageRef = _storage
           .ref()
           .child('users')
           .child(_userId)
-          .child('closet')
+          .child('children')
+          .child(widget.childInfo['childId'])
+          .child('clothing')
           .child(fileName);
 
       final UploadTask uploadTask = storageRef.putFile(
@@ -79,6 +85,7 @@ class _AddClothingPageState extends State<AddClothingPage> {
           contentType: 'image/${extension.substring(1)}',
           customMetadata: {
             'userId': _userId,
+            'childId': widget.childInfo['childId'],
             'uploadedAt': DateTime.now().toIso8601String(),
             'category': selectedCategory,
           },
@@ -118,10 +125,13 @@ class _AddClothingPageState extends State<AddClothingPage> {
     try {
       final imageUrl = await _uploadImage();
       if (imageUrl != null) {
+        // Database 경로를 자녀별로 구분
         final databaseRef = FirebaseDatabase.instance
             .ref()
             .child('users')
             .child(_userId)
+            .child('children')
+            .child(widget.childInfo['childId'])
             .child('clothing');
 
         await databaseRef.push().set({
@@ -130,6 +140,7 @@ class _AddClothingPageState extends State<AddClothingPage> {
           'category': selectedCategory,
           'imageUrl': imageUrl,
           'createdAt': ServerValue.timestamp,
+          'childId': widget.childInfo['childId'],
         });
 
         if (mounted) {
@@ -153,6 +164,14 @@ class _AddClothingPageState extends State<AddClothingPage> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          '${widget.childInfo['childName']}의 옷 추가', // 자녀 이름 표시
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
       body: SingleChildScrollView(
