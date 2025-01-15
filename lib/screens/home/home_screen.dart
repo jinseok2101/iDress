@@ -27,41 +27,42 @@ class _HomeScreenState extends State<HomeScreen> {
     if (user == null) return;
 
     try {
+      // 변경된 데이터베이스 경로에 따라 'children' 데이터를 가져옴
       final childrenRef = FirebaseDatabase.instance.ref('users/${user.uid}/children');
       final snapshot = await childrenRef.get();
 
       if (snapshot.exists) {
+        print('Children snapshot: ${snapshot.value}');
         final Map<dynamic, dynamic> children = snapshot.value as Map<dynamic, dynamic>;
-        final profiles = await Future.wait(children.keys.map((childKey) async {
-          final childSnapshot =
-          await FirebaseDatabase.instance.ref('children/$childKey').get();
-          if (childSnapshot.exists) {
-            final childData = childSnapshot.value as Map<dynamic, dynamic>;
-            return {
-              'key': childKey,
-              'name': childData['name'] ?? '',
-              'imageUrl': childData['profileImageUrl'] ?? '',
-            };
-          }
-          return null;
-        }));
+
+        // 각 자녀의 데이터를 수집
+        final profiles = children.entries.map((entry) {
+          final childData = entry.value as Map<dynamic, dynamic>;
+          return {
+            'key': entry.key,
+            'name': childData['name'] ?? '',
+            'imageUrl': childData['profileImageUrl'] ?? '',
+          };
+        }).toList();
 
         setState(() {
-          childrenProfiles = profiles.where((profile) => profile != null).cast<Map<String, dynamic>>().toList();
+          childrenProfiles = profiles.cast<Map<String, dynamic>>();
           _isLoading = false;
         });
       } else {
+        print('No children found for user: ${user.uid}');
         setState(() {
           _isLoading = false;
         });
       }
     } catch (e) {
+      print('Error loading profiles: $e');
       setState(() {
         _isLoading = false;
       });
-      debugPrint('Error loading profiles: $e');
     }
   }
+
 
   void _toggleSelecting() {
     setState(() {

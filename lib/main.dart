@@ -20,6 +20,8 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
+
+
   // Kakao SDK 초기화
   KakaoSdk.init(
     nativeAppKey: 'f4bd39482f6c679992c8be8837224f51',

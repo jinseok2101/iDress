@@ -91,7 +91,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       final profileImageUrl = await _uploadImage(_profileImage!, 'child_profile_images');
       final fullBodyImageUrl = await _uploadImage(_fullBodyImage!, 'child_fullbody_images');
-      final childRef = FirebaseDatabase.instance.ref('children').push();
+      final childRef = FirebaseDatabase.instance.ref('users/${user.uid}/children').push();
 
       await childRef.set({
         'name': _nameController.text,
@@ -104,10 +104,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'wardrobe': [],
       });
 
-      final userRef = FirebaseDatabase.instance.ref('users/${user.uid}/children');
-      await userRef.update({
-        childRef.key!: true,
-      });
+      // final userRef = FirebaseDatabase.instance.ref('users/${user.uid}/children');
+      // await userRef.update({
+      //   childRef.key!: true,
+      // });
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
