@@ -1,8 +1,10 @@
+import 'dart:io'; // File을 사용하려면 import 필요
 import 'package:flutter/material.dart';
 import 'package:last3/screens/authentication/auth_service.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:image_picker/image_picker.dart'; // 이미지 선택을 위한 패키지 추가
 
 class MyPage extends StatefulWidget {
   const MyPage({super.key});
@@ -22,6 +24,7 @@ class _MyPageState extends State<MyPage> {
     _loadUserData();
   }
 
+  // 사용자 데이터를 로드하는 함수
   Future<void> _loadUserData() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -43,6 +46,28 @@ class _MyPageState extends State<MyPage> {
       setState(() {
         isLoading = false;
       });
+    }
+  }
+
+  // 이미지 선택 함수
+  Future<void> _pickImage() async {
+    final ImagePicker _picker = ImagePicker();
+    final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      // 선택한 이미지를 로컬에 저장하고, 해당 경로를 profileImageUrl에 저장
+      setState(() {
+        profileImageUrl = pickedFile.path;
+      });
+
+      // Firebase에 새로운 프로필 이미지 URL 업데이트
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final databaseRef = FirebaseDatabase.instance.ref("users/${user.uid}");
+        await databaseRef.update({
+          'profileImageUrl': pickedFile.path, // 로컬 파일 경로 저장
+        });
+      }
     }
   }
 
@@ -76,35 +101,44 @@ class _MyPageState extends State<MyPage> {
                 ),
               ),
             ),
-
             // 프로필 섹션
             Center(
               child: Column(
                 children: [
-                  // 프로필 이미지
-                  Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      image: DecorationImage(
-                        image: profileImageUrl != null
-                            ? NetworkImage(profileImageUrl!) as ImageProvider
-                            : const AssetImage('assets/profile.jpg'),
-                        fit: BoxFit.cover,
-                      ),
-                      border: Border.all(
-                        color: Colors.white,
-                        width: 3,
+                  GestureDetector(
+                    onTap: _pickImage,  // 프로필 이미지 클릭 시 사진 변경
+                    child: Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        image: DecorationImage(
+                          image: profileImageUrl != null
+                              ? (profileImageUrl!.startsWith('http')  // URL인지 확인
+                              ? NetworkImage(profileImageUrl!)  // URL이면 NetworkImage 사용
+                              : FileImage(File(profileImageUrl!))  // 로컬 파일이면 FileImage 사용
+                          )
+                              : const AssetImage('assets/profile.jpg') as ImageProvider,  // 기본 프로필 이미지
+                          fit: BoxFit.cover,
+                        ),
+                        border: Border.all(
+                          color: Colors.white,
+                          width: 3,
+                        ),
                       ),
                     ),
                   ),
                   const SizedBox(height: 10),
-                  const Text(
-                    '프로필 편집',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.black54,
+
+                  // 프로필 편집 텍스트에 GestureDetector 추가하여 클릭 시 이미지 변경
+                  GestureDetector(
+                    onTap: _pickImage,  // "프로필 편집" 클릭 시 이미지 선택
+                    child: const Text(
+                      '프로필 편집',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.blue,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 5),
@@ -118,7 +152,6 @@ class _MyPageState extends State<MyPage> {
                 ],
               ),
             ),
-
             const SizedBox(height: 30),
 
             // 메뉴 리스트
@@ -250,29 +283,7 @@ class _MyPageState extends State<MyPage> {
                         final authService = Auth();
                         await authService.deleteAccount(context);
 
-                        // // 로딩 다이얼로그 닫기
-                        // await showDialog(
-                        //   context: context,
-                        //   builder: (BuildContext context) {
-                        //     return AlertDialog(
-                        //       title: const Text('탈퇴 완료'),
-                        //       content: const Text('계정이 성공적으로 탈퇴되었습니다.'),
-                        //       actions: [
-                        //         TextButton(
-                        //           onPressed: () {
-                        //             Navigator.pop(context); // 메시지 닫기
-                        //           },
-                        //           child: const Text('확인'),
-                        //         ),
-                        //       ],
-                        //     );
-                        //   },
-                        // );
-                        //
-                        // if (context.mounted) {
-                        //   context.go('/start'); // 초기 화면으로 이동
-                        // }
-
+                        // 로딩 다이얼로그 닫기
                       },
                       child: const Text(
                         '탈퇴',
@@ -296,23 +307,6 @@ class _MyPageState extends State<MyPage> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, String label) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, color: Colors.black54),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Colors.black54,
-          ),
-        ),
-      ],
     );
   }
 }
