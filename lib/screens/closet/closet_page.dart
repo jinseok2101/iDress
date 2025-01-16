@@ -67,22 +67,30 @@ class _ClosetPageState extends State<ClosetPage> {
   Future<void> deleteSelectedItems() async {
     try {
       for (String key in selectedItems) {
-        final snapshot = await _clothingRef.child(key).get();
-        if (snapshot.exists) {
-          final data = snapshot.value as Map<dynamic, dynamic>;
-          final imageUrl = data['imageUrl'] as String;
+        // 먼저 해당 아이템의 카테고리와 정보를 찾습니다
+        final categories = ['상의', '하의', '신발'];
+        for (String category in categories) {
+          final categoryRef = _clothingRef.child(category);
+          final itemSnapshot = await categoryRef.child(key).get();
 
-          try {
-            final uri = Uri.parse(imageUrl);
-            final imagePath = uri.path.split('/o/').last;
-            final decodedPath = Uri.decodeFull(imagePath.split('?').first);
+          if (itemSnapshot.exists) {
+            final data = itemSnapshot.value as Map<dynamic, dynamic>;
+            final imageUrl = data['imageUrl'] as String;
 
-            await FirebaseStorage.instance.ref(decodedPath).delete();
-          } catch (e) {
-            print('Storage 삭제 오류: $e');
+            try {
+              // Storage에서 이미지 삭제
+              final uri = Uri.parse(imageUrl);
+              final imagePath = uri.path.split('/o/').last;
+              final decodedPath = Uri.decodeFull(imagePath.split('?').first);
+              await FirebaseStorage.instance.ref(decodedPath).delete();
+            } catch (e) {
+              print('Storage 삭제 오류: $e');
+            }
+
+            // Database에서 데이터 삭제
+            await categoryRef.child(key).remove();
+            break; // 아이템을 찾아서 삭제했으면 다음 선택된 아이템으로 이동
           }
-
-          await _clothingRef.child(key).remove();
         }
       }
 
@@ -286,16 +294,22 @@ class _ClosetPageState extends State<ClosetPage> {
                     return Center(child: Text('등록된 옷이 없습니다'));
                   }
 
-                  Map<dynamic, dynamic> clothingMap =
-                  snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
+                  Map<dynamic, dynamic> categories = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
+                  List<MapEntry<dynamic, dynamic>> filteredClothing = [];
 
-                  // 카테고리별 필터링
-                  List<MapEntry<dynamic, dynamic>> filteredClothing =
-                  clothingMap.entries.where((entry) {
-                    Map<dynamic, dynamic> clothing = entry.value as Map<dynamic, dynamic>;
-                    return selectedCategory == '전체' ||
-                        clothing['category'] == selectedCategory;
-                  }).toList();
+                  // 카테고리별로 옷 데이터 수집
+                  categories.forEach((category, clothingItems) {
+                    if (clothingItems != null && clothingItems is Map) {
+                      // 선택된 카테고리의 옷만 필터링
+                      if (selectedCategory == '전체' || category == selectedCategory) {
+                        clothingItems.forEach((key, value) {
+                          if (value is Map) {
+                            filteredClothing.add(MapEntry(key, value));
+                          }
+                        });
+                      }
+                    }
+                  });
 
                   // 검색어로 추가 필터링
                   if (isSearchVisible && _searchController.text.isNotEmpty) {
@@ -511,7 +525,8 @@ class _ClosetPageState extends State<ClosetPage> {
                 .child(_userId)
                 .child('children')
                 .child(_childId!)
-                .child('clothing');
+                .child('clothing')
+                .child('상의');
 
             final snapshot = await clothingRef.get();
             if (snapshot.exists) {

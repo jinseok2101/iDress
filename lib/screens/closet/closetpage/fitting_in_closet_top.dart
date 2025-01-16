@@ -9,13 +9,13 @@ import 'fitting_in_closet_pants.dart';
 
 class FittingInClosetTop extends StatefulWidget {
   final String userId;
-  final String childId; // 추가: 자녀 ID
+  final String childId;
   final List<Map<dynamic, dynamic>> topClothes;
 
   const FittingInClosetTop({
     Key? key,
     required this.userId,
-    required this.childId, // 추가
+    required this.childId,
     required this.topClothes,
   }) : super(key: key);
 
@@ -28,72 +28,127 @@ class _FittingInClosetTopState extends State<FittingInClosetTop> {
   bool _isUploading = false;
   String? selectedTopId;
 
-  Future<void> _uploadImage() async {
-    try {
-      final XFile? pickedFile = await _picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        imageQuality: 85,
-      );
-
-      if (pickedFile != null) {
-        setState(() {
-          _isUploading = true;
-        });
-
-        final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-        final String uuid = const Uuid().v4();
-        final String extension = path.extension(pickedFile.path);
-        final String fileName = '${widget.userId}_${widget.childId}_top_${timestamp}_$uuid$extension';
-
-        // 수정: Storage 경로에 childId 추가
-        final Reference storageRef = FirebaseStorage.instance
-            .ref()
-            .child('users')
-            .child(widget.userId)
-            .child('children')
-            .child(widget.childId)
-            .child('clothing')
-            .child(fileName);
-
-        final UploadTask uploadTask = storageRef.putFile(
-          File(pickedFile.path),
-          SettableMetadata(
-            contentType: 'image/${extension.substring(1)}',
-            customMetadata: {
-              'userId': widget.userId,
-              'childId': widget.childId,
-              'category': '상의',
-              'uploadedAt': DateTime.now().toIso8601String(),
-            },
+  Future<ImageSource?> _showImageSourceDialog(BuildContext context) async {
+    return showDialog<ImageSource>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('이미지 선택'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                GestureDetector(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      children: [
+                        Icon(Icons.photo_library),
+                        SizedBox(width: 10),
+                        Text('갤러리에서 선택'),
+                      ],
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.of(context).pop(ImageSource.gallery);
+                  },
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Divider(),
+                ),
+                GestureDetector(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      children: [
+                        Icon(Icons.photo_camera),
+                        SizedBox(width: 10),
+                        Text('카메라로 촬영'),
+                      ],
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.of(context).pop(ImageSource.camera);
+                  },
+                ),
+              ],
+            ),
           ),
         );
+      },
+    );
+  }
 
-        final TaskSnapshot snapshot = await uploadTask;
-        final String downloadUrl = await snapshot.ref.getDownloadURL();
+  Future<void> _uploadImage() async {
+    try {
+      final ImageSource? source = await _showImageSourceDialog(context);
 
-        // 수정: Database 경로에 childId 추가
-        final databaseRef = FirebaseDatabase.instance
-            .ref()
-            .child('users')
-            .child(widget.userId)
-            .child('children')
-            .child(widget.childId)
-            .child('clothing');
-
-        await databaseRef.push().set({
-          'imageUrl': downloadUrl,
-          'category': '상의',
-          'name': '새 상의',
-          'size': '',
-          'createdAt': ServerValue.timestamp,
-          'childId': widget.childId,
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('이미지가 업로드되었습니다')),
+      if (source != null) {
+        final XFile? pickedFile = await _picker.pickImage(
+          source: source,
+          maxWidth: 1024,
+          maxHeight: 1024,
+          imageQuality: 85,
         );
+
+        if (pickedFile != null) {
+          setState(() {
+            _isUploading = true;
+          });
+
+          final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+          final String uuid = const Uuid().v4();
+          final String extension = path.extension(pickedFile.path);
+          final String fileName = '${widget.userId}_${widget.childId}_${timestamp}_$uuid$extension';
+
+          final Reference storageRef = FirebaseStorage.instance
+              .ref()
+              .child('users')
+              .child(widget.userId)
+              .child('children')
+              .child(widget.childId)
+              .child('clothing')
+              .child('상의')  // 카테고리 지정
+              .child(fileName);
+
+          final UploadTask uploadTask = storageRef.putFile(
+            File(pickedFile.path),
+            SettableMetadata(
+              contentType: 'image/${extension.substring(1)}',
+              customMetadata: {
+                'userId': widget.userId,
+                'childId': widget.childId,
+                'category': '상의',
+                'uploadedAt': DateTime.now().toIso8601String(),
+              },
+            ),
+          );
+
+          final TaskSnapshot snapshot = await uploadTask;
+          final String downloadUrl = await snapshot.ref.getDownloadURL();
+
+          final databaseRef = FirebaseDatabase.instance
+              .ref()
+              .child('users')
+              .child(widget.userId)
+              .child('children')
+              .child(widget.childId)
+              .child('clothing')
+              .child('상의');  // 카테고리 지정
+
+          await databaseRef.push().set({
+            'imageUrl': downloadUrl,
+            'category': '상의',
+            'name': '새 상의',
+            'size': '',
+            'createdAt': ServerValue.timestamp,
+            'childId': widget.childId,
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('이미지가 업로드되었습니다')),
+          );
+        }
       }
     } catch (e) {
       print('이미지 업로드 오류: $e');
@@ -140,17 +195,15 @@ class _FittingInClosetTopState extends State<FittingInClosetTop> {
                       .ref()
                       .child('users')
                       .child(widget.userId)
-                      .child('clothing');
+                      .child('children')
+                      .child(widget.childId)
+                      .child('clothing')
+                      .child('하의');  // 카테고리 지정
 
                   final snapshot = await clothingRef.get();
                   if (snapshot.exists) {
                     final data = snapshot.value as Map<dynamic, dynamic>;
-
                     final pantsClothes = data.entries
-                        .where((entry) {
-                      final clothing = entry.value as Map<dynamic, dynamic>;
-                      return clothing['category'] == '하의';
-                    })
                         .map((entry) => entry.value as Map<dynamic, dynamic>)
                         .toList();
 
@@ -160,13 +213,20 @@ class _FittingInClosetTopState extends State<FittingInClosetTop> {
                         MaterialPageRoute(
                           builder: (context) => FittingInClosetPants(
                             userId: widget.userId,
+                            childId: widget.childId,
                             pantsClothes: pantsClothes,
+                            selectedTopImageUrl: selectedTopId ?? '',  // null 체크 추가
                           ),
                         ),
                       );
                     }
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('등록된 하의가 없습니다')),
+                    );
                   }
-                } catch (e) {
+                }
+                catch (e) {
                   print('데이터 로드 오류: $e');
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('데이터를 불러오는 중 오류가 발생했습니다')),
@@ -240,7 +300,7 @@ class _FittingInClosetTopState extends State<FittingInClosetTop> {
                 }
 
                 final clothing = widget.topClothes[index - 1];
-                final String clothingId = clothing['id'] ?? '';
+                final String clothingId = clothing['imageUrl']; // 'id' 대신 'imageUrl'을 unique identifier로 사용
                 final bool isSelected = clothingId == selectedTopId;
 
                 return GestureDetector(
@@ -349,7 +409,10 @@ class _FittingInClosetTopState extends State<FittingInClosetTop> {
                   .ref()
                   .child('users')
                   .child(widget.userId)
-                  .child('clothing');
+                  .child('children')
+                  .child(widget.childId)
+                  .child('clothing')
+                  .child('하의');
 
               final snapshot = await clothingRef.get();
               if (snapshot.exists) {
@@ -369,7 +432,9 @@ class _FittingInClosetTopState extends State<FittingInClosetTop> {
                     MaterialPageRoute(
                       builder: (context) => FittingInClosetPants(
                         userId: widget.userId,
+                        childId: widget.childId,
                         pantsClothes: pantsClothes,
+                        selectedTopImageUrl: selectedTopId!,  // 선택된 상의의 이미지 URL 전달
                       ),
                     ),
                   );

@@ -35,19 +35,74 @@ class _AddClothingPageState extends State<AddClothingPage> {
     {'label': '신발', 'icon': Icons.checkroom},
   ];
 
+  Future<ImageSource?> _showImageSourceDialog(BuildContext context) async {
+    return showDialog<ImageSource>(  // ImageSource 타입으로 명시
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('이미지 선택'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                GestureDetector(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      children: [
+                        Icon(Icons.photo_library),
+                        SizedBox(width: 10),
+                        Text('갤러리에서 선택'),
+                      ],
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.of(context).pop(ImageSource.gallery);
+                  },
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Divider(),
+                ),
+                GestureDetector(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      children: [
+                        Icon(Icons.photo_camera),
+                        SizedBox(width: 10),
+                        Text('카메라로 촬영'),
+                      ],
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.of(context).pop(ImageSource.camera);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _pickImage() async {
     try {
-      final XFile? pickedFile = await _picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        imageQuality: 85,
-      );
+      final ImageSource? source = await _showImageSourceDialog(context);
 
-      if (pickedFile != null) {
-        setState(() {
-          _imageFile = File(pickedFile.path);
-        });
+      if (source != null) {
+        final XFile? pickedFile = await _picker.pickImage(
+          source: source,  // 선택된 소스 사용
+          maxWidth: 1024,
+          maxHeight: 1024,
+          imageQuality: 85,
+        );
+
+        if (pickedFile != null) {
+          setState(() {
+            _imageFile = File(pickedFile.path);
+          });
+        }
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -132,7 +187,8 @@ class _AddClothingPageState extends State<AddClothingPage> {
             .child(_userId)
             .child('children')
             .child(widget.childInfo['childId'])
-            .child('clothing');
+            .child('clothing')
+            .child(selectedCategory);
 
         await databaseRef.push().set({
           'name': nameController.text,
