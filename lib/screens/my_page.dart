@@ -120,34 +120,7 @@ class MyPage extends StatelessWidget {
                 ],
               ),
             ),
-
             const SizedBox(height: 80),
-
-            // 하단 네비게이션
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.2),
-                    spreadRadius: 0,
-                    blurRadius: 10,
-                    offset: const Offset(0, -5),
-                  ),
-                ],
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 15),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildNavItem(Icons.photo_library, '피팅룸'),
-                    _buildNavItem(Icons.home, '홈'),
-                    _buildNavItem(Icons.person, '마이페이지'),
-                  ],
-                ),
-              ),
-            ),
           ],
         ),
       ),
