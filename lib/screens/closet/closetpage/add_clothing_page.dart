@@ -187,7 +187,8 @@ class _AddClothingPageState extends State<AddClothingPage> {
             .child(_userId)
             .child('children')
             .child(widget.childInfo['childId'])
-            .child('clothing');
+            .child('clothing')
+            .child(selectedCategory);
 
         await databaseRef.push().set({
           'name': nameController.text,

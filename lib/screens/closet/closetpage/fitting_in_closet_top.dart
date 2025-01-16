@@ -9,13 +9,13 @@ import 'fitting_in_closet_pants.dart';
 
 class FittingInClosetTop extends StatefulWidget {
   final String userId;
-  final String childId; // 추가: 자녀 ID
+  final String childId;
   final List<Map<dynamic, dynamic>> topClothes;
 
   const FittingInClosetTop({
     Key? key,
     required this.userId,
-    required this.childId, // 추가
+    required this.childId,
     required this.topClothes,
   }) : super(key: key);
 
@@ -83,7 +83,7 @@ class _FittingInClosetTopState extends State<FittingInClosetTop> {
     try {
       final ImageSource? source = await _showImageSourceDialog(context);
 
-      if (source != null) {  // 소스가 선택되었을 때만 진행
+      if (source != null) {
         final XFile? pickedFile = await _picker.pickImage(
           source: source,
           maxWidth: 1024,
@@ -108,6 +108,7 @@ class _FittingInClosetTopState extends State<FittingInClosetTop> {
               .child('children')
               .child(widget.childId)
               .child('clothing')
+              .child('상의')  // 카테고리 지정
               .child(fileName);
 
           final UploadTask uploadTask = storageRef.putFile(
@@ -117,7 +118,7 @@ class _FittingInClosetTopState extends State<FittingInClosetTop> {
               customMetadata: {
                 'userId': widget.userId,
                 'childId': widget.childId,
-                'category': '상의',  // fitting_in_closet_pants.dart에서는 '하의'로 변경
+                'category': '상의',
                 'uploadedAt': DateTime.now().toIso8601String(),
               },
             ),
@@ -132,12 +133,13 @@ class _FittingInClosetTopState extends State<FittingInClosetTop> {
               .child(widget.userId)
               .child('children')
               .child(widget.childId)
-              .child('clothing');
+              .child('clothing')
+              .child('상의');  // 카테고리 지정
 
           await databaseRef.push().set({
             'imageUrl': downloadUrl,
-            'category': '상의',  // fitting_in_closet_pants.dart에서는 '하의'로 변경
-            'name': '새 상의',   // fitting_in_closet_pants.dart에서는 '새 하의'로 변경
+            'category': '상의',
+            'name': '새 상의',
             'size': '',
             'createdAt': ServerValue.timestamp,
             'childId': widget.childId,
@@ -195,17 +197,13 @@ class _FittingInClosetTopState extends State<FittingInClosetTop> {
                       .child(widget.userId)
                       .child('children')
                       .child(widget.childId)
-                      .child('clothing');
+                      .child('clothing')
+                      .child('하의');  // 카테고리 지정
 
                   final snapshot = await clothingRef.get();
                   if (snapshot.exists) {
                     final data = snapshot.value as Map<dynamic, dynamic>;
-
                     final pantsClothes = data.entries
-                        .where((entry) {
-                      final clothing = entry.value as Map<dynamic, dynamic>;
-                      return clothing['category'] == '하의';
-                    })
                         .map((entry) => entry.value as Map<dynamic, dynamic>)
                         .toList();
 
@@ -217,13 +215,18 @@ class _FittingInClosetTopState extends State<FittingInClosetTop> {
                             userId: widget.userId,
                             childId: widget.childId,
                             pantsClothes: pantsClothes,
-                            selectedTopImageUrl: selectedTopId!,  // 선택된 상의의 이미지 URL 전달
+                            selectedTopImageUrl: selectedTopId ?? '',  // null 체크 추가
                           ),
                         ),
                       );
                     }
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('등록된 하의가 없습니다')),
+                    );
                   }
-                } catch (e) {
+                }
+                catch (e) {
                   print('데이터 로드 오류: $e');
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('데이터를 불러오는 중 오류가 발생했습니다')),
@@ -408,7 +411,8 @@ class _FittingInClosetTopState extends State<FittingInClosetTop> {
                   .child(widget.userId)
                   .child('children')
                   .child(widget.childId)
-                  .child('clothing');
+                  .child('clothing')
+                  .child('하의');
 
               final snapshot = await clothingRef.get();
               if (snapshot.exists) {

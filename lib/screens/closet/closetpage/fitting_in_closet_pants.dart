@@ -11,14 +11,14 @@ class FittingInClosetPants extends StatefulWidget {
   final String userId;
   final String childId;
   final List<Map<dynamic, dynamic>> pantsClothes;
-  final String selectedTopImageUrl;  // 추가
+  final String selectedTopImageUrl;
 
   const FittingInClosetPants({
     Key? key,
     required this.userId,
     required this.childId,
     required this.pantsClothes,
-    required this.selectedTopImageUrl,  // 추가
+    required this.selectedTopImageUrl,
   }) : super(key: key);
 
   @override
@@ -85,7 +85,7 @@ class _FittingInClosetPantsState extends State<FittingInClosetPants> {
     try {
       final ImageSource? source = await _showImageSourceDialog(context);
 
-      if (source != null) {  // 소스가 선택되었을 때만 진행
+      if (source != null) {
         final XFile? pickedFile = await _picker.pickImage(
           source: source,
           maxWidth: 1024,
@@ -110,6 +110,7 @@ class _FittingInClosetPantsState extends State<FittingInClosetPants> {
               .child('children')
               .child(widget.childId)
               .child('clothing')
+              .child('하의')  // 카테고리 지정
               .child(fileName);
 
           final UploadTask uploadTask = storageRef.putFile(
@@ -119,7 +120,7 @@ class _FittingInClosetPantsState extends State<FittingInClosetPants> {
               customMetadata: {
                 'userId': widget.userId,
                 'childId': widget.childId,
-                'category': '하의',  // fitting_in_closet_pants.dart에서는 '하의'로 변경
+                'category': '하의',
                 'uploadedAt': DateTime.now().toIso8601String(),
               },
             ),
@@ -134,12 +135,13 @@ class _FittingInClosetPantsState extends State<FittingInClosetPants> {
               .child(widget.userId)
               .child('children')
               .child(widget.childId)
-              .child('clothing');
+              .child('clothing')
+              .child('하의');  // 카테고리 지정
 
           await databaseRef.push().set({
             'imageUrl': downloadUrl,
-            'category': '하의',  // fitting_in_closet_pants.dart에서는 '하의'로 변경
-            'name': '새 하의',   // fitting_in_closet_pants.dart에서는 '새 하의'로 변경
+            'category': '하의',
+            'name': '새 하의',
             'size': '',
             'createdAt': ServerValue.timestamp,
             'childId': widget.childId,
@@ -189,7 +191,18 @@ class _FittingInClosetPantsState extends State<FittingInClosetPants> {
               borderRadius: BorderRadius.circular(8),
             ),
             child: TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () {
+                // 건너뛰기를 눌렀을 때 빈 이미지나 기본 이미지로 결과 페이지로 이동
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => FittingResultPage(
+                      topImageFile: File(widget.selectedTopImageUrl),
+                      bottomImageFile: File(''),  // 빈 파일 전달
+                    ),
+                  ),
+                );
+              },
               child: Text(
                 '건너뛰기 >',
                 style: TextStyle(
@@ -362,7 +375,6 @@ class _FittingInClosetPantsState extends State<FittingInClosetPants> {
         child: ElevatedButton(
           onPressed: () async {
             try {
-              // 선택된 상의와 하의의 이미지를 가져와서 결과 페이지로 전달
               final selectedPants = widget.pantsClothes.firstWhere(
                     (pants) => pants['imageUrl'] == selectedPantsId,
                 orElse: () => {},
