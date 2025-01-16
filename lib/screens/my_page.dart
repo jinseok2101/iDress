@@ -1,8 +1,50 @@
 import 'package:flutter/material.dart';
 import 'package:last3/screens/authentication/auth_service.dart';
 import 'package:go_router/go_router.dart';
-class MyPage extends StatelessWidget {
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
+
+class MyPage extends StatefulWidget {
   const MyPage({super.key});
+
+  @override
+  State<MyPage> createState() => _MyPageState();
+}
+
+class _MyPageState extends State<MyPage> {
+  String username = '';
+  String? profileImageUrl;
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final databaseRef = FirebaseDatabase.instance.ref("users/${user.uid}");
+        final snapshot = await databaseRef.get();
+
+        if (snapshot.exists) {
+          final data = snapshot.value as Map<dynamic, dynamic>;
+          setState(() {
+            username = data['username'] ?? '';
+            profileImageUrl = data['profileImageUrl'];
+            isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading user data: $e');
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -13,13 +55,14 @@ class MyPage extends StatelessWidget {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => context.go('/home'), // 홈으로 이동
+          onPressed: () => context.go('/home'),
         ),
       ),
-      body: SingleChildScrollView(
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
         child: Column(
           children: [
-            // My Page 헤더
             const Padding(
               padding: EdgeInsets.only(left: 20, top: 20, bottom: 20),
               child: Align(
@@ -44,8 +87,10 @@ class MyPage extends StatelessWidget {
                     height: 100,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      image: const DecorationImage(
-                        image: AssetImage('assets/profile.jpg'),
+                      image: DecorationImage(
+                        image: profileImageUrl != null
+                            ? NetworkImage(profileImageUrl!) as ImageProvider
+                            : const AssetImage('assets/profile.jpg'),
                         fit: BoxFit.cover,
                       ),
                       border: Border.all(
@@ -63,9 +108,9 @@ class MyPage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 5),
-                  const Text(
-                    '[ 사용자 이름 ]님, 반갑습니다!',
-                    style: TextStyle(
+                  Text(
+                    '$username님, 반갑습니다!',
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
