@@ -232,29 +232,29 @@ class MyPage extends StatelessWidget {
                         final authService = Auth();
                         await authService.deleteAccount(context);
 
-                        // 로딩 다이얼로그 닫기
-                        if (context.mounted) {
-                          Navigator.pop(context);
+                        // // 로딩 다이얼로그 닫기
+                        // await showDialog(
+                        //   context: context,
+                        //   builder: (BuildContext context) {
+                        //     return AlertDialog(
+                        //       title: const Text('탈퇴 완료'),
+                        //       content: const Text('계정이 성공적으로 탈퇴되었습니다.'),
+                        //       actions: [
+                        //         TextButton(
+                        //           onPressed: () {
+                        //             Navigator.pop(context); // 메시지 닫기
+                        //           },
+                        //           child: const Text('확인'),
+                        //         ),
+                        //       ],
+                        //     );
+                        //   },
+                        // );
+                        //
+                        // if (context.mounted) {
+                        //   context.go('/start'); // 초기 화면으로 이동
+                        // }
 
-                          // 성공 메시지 표시
-                          showDialog(
-                            context: context,
-                            builder: (BuildContext context) {
-                              return AlertDialog(
-                                title: const Text('탈퇴 완료'),
-                                content: const Text('계정이 성공적으로 탈퇴되었습니다.'),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.pop(context);
-                                    },
-                                    child: const Text('확인'),
-                                  ),
-                                ],
-                              );
-                            },
-                          );
-                        }
                       },
                       child: const Text(
                         '탈퇴',

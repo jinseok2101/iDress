@@ -159,49 +159,86 @@ class Auth {
     debugPrint('로컬 데이터 삭제 완료');
 
     if (context.mounted) {
-      context.go('/login');
+      context.go('/start');
     }
   }
 
-// 계정 탈퇴 기능
+
+
+
+
   Future<void> deleteAccount(BuildContext context) async {
+
+    if (context.mounted) {
+      context.go('/start'); // '/start' 경로로 이동
+
+    }
+
+    // 로딩 스피너 표시
+    if (context.mounted && Navigator.canPop(context)) {
+      Navigator.pop(context);
+      debugPrint('Checkpoint: 로딩 스피너 닫기 완료');
+    } else {
+      debugPrint('Checkpoint: 로딩 스피너를 닫을 수 없습니다. Navigator.canPop: ${Navigator.canPop(context)}');
+    }
+
+
     try {
       final user = _firebaseAuth.currentUser;
       if (user != null) {
-        // Firebase 계정 삭제
+        final databaseRef = FirebaseDatabase.instance.ref("users/${user.uid}");
+        await databaseRef.remove();
+        debugPrint('Checkpoint: Firebase 데이터 삭제 완료');
+
         await user.delete();
-        debugPrint('Firebase 계정 삭제 성공');
+        debugPrint('Checkpoint: Firebase 계정 삭제 완료');
       } else {
-        debugPrint('삭제할 Firebase 계정이 없습니다.');
+        debugPrint('Checkpoint: 삭제할 Firebase 계정이 없습니다.');
         return;
       }
     } catch (e) {
-      debugPrint('Firebase 계정 삭제 실패: $e');
+      debugPrint('Firebase 계정 또는 데이터 삭제 실패: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('계정 삭제 실패: $e')),
+        );
+      }
+    } finally {
+      if (context.mounted && Navigator.canPop(context)) {
+        Navigator.pop(context);
+        debugPrint('Checkpoint: 로딩 스피너 닫기 완료');
+      }
     }
 
     try {
-      // 카카오 연동 해제
       await kakao_sdk.UserApi.instance.unlink();
-      debugPrint('카카오 연동 해제 성공');
+      debugPrint('Checkpoint: 카카오 연동 해제 완료');
     } catch (e) {
       debugPrint('카카오 연동 해제 실패: $e');
     }
 
-    // 로그아웃 처리 (context.go를 제외한 나머지 로그아웃 로직)
     try {
       await _firebaseAuth.signOut();
       final googleSignIn = GoogleSignIn();
       await googleSignIn.signOut();
+
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
+      debugPrint('Checkpoint: 로컬 데이터 삭제 완료');
     } catch (e) {
       debugPrint('로그아웃 처리 중 오류 발생: $e');
     }
 
-    if (context.mounted) {
-      context.go('/start'); // '/login' 대신 '/start'로 변경
-    }
+
   }
+
+
+
+
+
+
+
+
   // UID로 사용자 확인
   Future<bool> isRegisteredByUID(String uid) async {
     try {
@@ -231,7 +268,9 @@ class Auth {
         final userInfo = userData[userKey] as Map<String, dynamic>;
 
         final hashedPassword = hashPassword(password);
-        if (userInfo['password'] == hashedPassword) {
+
+        // 수정된 부분: 데이터베이스의 passwordHash와 비교
+        if (userInfo['passwordHash'] == hashedPassword) {
           debugPrint('로그인 성공: $id');
           return true;
         } else {
@@ -252,9 +291,6 @@ class Auth {
     final bytes = utf8.encode(password);
     return sha256.convert(bytes).toString();
   }
-
-
-
 
   Future<void> _storeUserInfoInPrefs(firebase_auth.User user, String? token) async {
     final prefs = await SharedPreferences.getInstance();
