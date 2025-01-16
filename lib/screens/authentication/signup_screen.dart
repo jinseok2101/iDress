@@ -1,10 +1,12 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:last3/screens/authentication/auth_service.dart';
-
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 class SignupScreen extends ConsumerStatefulWidget {
   const SignupScreen({super.key});
@@ -20,6 +22,7 @@ Future<void> saveUserToFirebase({
   required String phone,
   String? id,
   String? passwordHash,
+  String? profileImageUrl,
 }) async {
   final databaseRef = FirebaseDatabase.instance.ref("users/$uid");
   final timestamp = DateTime.now().toIso8601String();
@@ -30,6 +33,7 @@ Future<void> saveUserToFirebase({
     if (id != null) "id": id, // 일반 로그인 사용자만 저장
     if (passwordHash != null) "passwordHash": passwordHash, // 일반 로그인 사용자만 저장
     "createdAt": timestamp,
+    if (profileImageUrl != null) "profileImageUrl": profileImageUrl, // 프로필 이미지 URL 추가
   });
 }
 
@@ -42,6 +46,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   final _confirmPasswordController = TextEditingController();
 
   bool _isLoading = false;
+  XFile? _profileImage; // 선택한 프로필 이미지 파일
 
   @override
   void dispose() {
@@ -51,6 +56,36 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  // 이미지 선택 함수
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _profileImage = pickedFile;
+      });
+    }
+  }
+
+  // 이미지 업로드 함수
+  Future<String?> _uploadImageToFirebase(XFile imageFile) async {
+    try {
+      final storageRef = FirebaseStorage.instance.ref();
+      final profileImagesRef = storageRef.child("parent_profile/${DateTime.now().millisecondsSinceEpoch}.jpg");
+
+      // 이미지 업로드
+      final uploadTask = profileImagesRef.putFile(File(imageFile.path));
+      final snapshot = await uploadTask;
+
+      // 업로드 후 이미지 URL을 가져옴
+      final imageUrl = await snapshot.ref.getDownloadURL();
+      return imageUrl;
+    } catch (e) {
+      debugPrint("이미지 업로드 실패: $e");
+      return null;
+    }
   }
 
   Future<void> _submitForm() async {
@@ -65,12 +100,20 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       }
 
       final uid = user.uid; // Firebase Authentication에서 고유 UID 가져오기
+
+      String? profileImageUrl;
+      if (_profileImage != null) {
+        // Firebase Storage에 이미지 업로드하고 URL 받아오기
+        profileImageUrl = await _uploadImageToFirebase(_profileImage!);
+      }
+
       await saveUserToFirebase(
         uid: uid,
         username: _usernameController.text,
         phone: _phoneController.text,
         id: _idController.text,
         passwordHash: Auth().hashPassword(_passwordController.text), // 비밀번호 해시 추가 필요
+        profileImageUrl: profileImageUrl,
       );
       debugPrint('회원가입: 저장된 해시 비밀번호 = ${Auth().hashPassword(_passwordController.text)}');
 
@@ -110,6 +153,12 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 48),
+
+                  // 이미지 선택 UI 추가
+                  _buildImagePicker(),
+                  const SizedBox(height: 24),
+
+                  // 기존 입력 필드들
                   _buildInputField(
                     controller: _usernameController,
                     label: '닉네임',
@@ -231,6 +280,40 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  // 이미지 선택 UI
+  Widget _buildImagePicker() {
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: _pickImage,
+          child: CircleAvatar(
+            radius: 50,
+            backgroundColor: Colors.grey.shade200,
+            child: _profileImage == null
+                ? Icon(
+              Icons.camera_alt,
+              color: Colors.grey.shade600,
+              size: 40,
+            )
+                : ClipOval(
+              child: Image.file(
+                File(_profileImage!.path),
+                width: 100,
+                height: 100,
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          '프로필 사진을 추가하세요',
+          style: TextStyle(color: Colors.grey.shade600),
+        ),
+      ],
     );
   }
 
