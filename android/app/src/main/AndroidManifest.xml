@@ -3,7 +3,8 @@
     <application
         android:label="last3"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:enableOnBackInvokedCallback="true">
 
         <!-- Google Play Services Version -->
         <meta-data
