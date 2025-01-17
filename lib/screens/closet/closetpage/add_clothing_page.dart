@@ -36,7 +36,6 @@ class _AddClothingPageState extends State<AddClothingPage> {
   final ClothingAnalyzer _analyzer = ClothingAnalyzer();
 
   final List<Map<String, dynamic>> categories = [
-    {'label': '전체', 'icon': Icons.checkroom},
     {'label': '한벌옷', 'icon': Icons.accessibility_new},
     {'label': '상의', 'icon': Icons.checkroom},
     {'label': '하의', 'icon': Icons.checkroom},
@@ -250,13 +249,6 @@ class _AddClothingPageState extends State<AddClothingPage> {
     if (nameController.text.isEmpty || sizeController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('필수 필드를 입력해주세요')),
-      );
-      return;
-    }
-
-    if (selectedCategory == '전체') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('카테고리를 선택해주세요')),
       );
       return;
     }
