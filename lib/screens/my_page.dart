@@ -158,7 +158,7 @@ class _MyPageState extends State<MyPage> {
             // 메뉴 리스트
             _buildMenuItem(Icons.checkroom, '나의 아이 옷장'),
             _buildMenuItem(Icons.person_outline, '개인 정보', onTap: () => context.go('/information')), // 정보 페이지로 이동
-            _buildMenuItem(Icons.notifications_none, '알림 설정', onTap: () => context.go('/notice')), // 공지사항 페이지로 이동
+            _buildMenuItem(Icons.notifications_none, '알림 설정'), // 공지사항 페이지로 이동
 
             _buildMenuItem(Icons.campaign_outlined, '공지 사항', onTap: () => context.go('/notice')), // 공지사항 페이지로 이동
 
