@@ -1,3 +1,4 @@
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -11,6 +12,9 @@ import 'package:last3/screens/closet_main_screen.dart';
 import 'package:last3/screens/home/child_register_screen.dart';
 import 'package:last3/screens/home/home_screen.dart';
 import 'package:last3/screens/my_page.dart';
+import 'package:last3/screens/home/notice_page.dart';
+import 'package:last3/screens/home/information.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -72,6 +76,11 @@ class MyApp extends StatelessWidget {
               builder: (context, state) => RegisterScreen()),
           GoRoute(path: '/mypage',
               builder: (context, state) => MyPage()),
+          GoRoute(path: '/notice',
+              builder: (context, state) => NoticePage()),
+          GoRoute(path: '/information',
+              builder: (context, state) => InformationPage()),
+
         ],
       ),
     );

@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:image_picker/image_picker.dart'; // 이미지 선택을 위한 패키지 추가
 
+
 class MyPage extends StatefulWidget {
   const MyPage({super.key});
 
@@ -156,9 +157,10 @@ class _MyPageState extends State<MyPage> {
 
             // 메뉴 리스트
             _buildMenuItem(Icons.checkroom, '나의 아이 옷장'),
-            _buildMenuItem(Icons.person_outline, '개인 정보'),
-            _buildMenuItem(Icons.notifications_none, '알림 설정'),
-            _buildMenuItem(Icons.campaign_outlined, '공지 사항'),
+            _buildMenuItem(Icons.person_outline, '개인 정보', onTap: () => context.go('/information')), // 정보 페이지로 이동
+            _buildMenuItem(Icons.notifications_none, '알림 설정', onTap: () => context.go('/notice')), // 공지사항 페이지로 이동
+
+            _buildMenuItem(Icons.campaign_outlined, '공지 사항', onTap: () => context.go('/notice')), // 공지사항 페이지로 이동
 
             const SizedBox(height: 20),
 
@@ -205,13 +207,14 @@ class _MyPageState extends State<MyPage> {
     );
   }
 
-  Widget _buildMenuItem(IconData icon, String title) {
+  Widget _buildMenuItem(IconData icon, String title, {VoidCallback? onTap}) {
     return Container(
       color: Colors.white,
       child: ListTile(
         leading: Icon(icon),
         title: Text(title),
         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+        onTap: onTap,
       ),
     );
   }
