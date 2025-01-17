@@ -6,13 +6,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:path/path.dart' as path;
 import 'package:uuid/uuid.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
-class ColorOption {
-  final String name;
-  final Color color;
-
-  ColorOption(this.name, this.color);
-}
+import 'clothing_analyzer.dart';
 
 class AddClothingPage extends StatefulWidget {
   final Map<String, dynamic> childInfo;
@@ -32,29 +26,18 @@ class _AddClothingPageState extends State<AddClothingPage> {
   final TextEditingController memoController = TextEditingController();
   String selectedCategory = '전체';
   String selectedSeason = '사계절';
-  Color selectedColor = Colors.grey;
+  String selectedColor = '미분류';
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
   bool _isUploading = false;
+  bool _isAnalyzing = false;
   final FirebaseStorage _storage = FirebaseStorage.instance;
   final String _userId = FirebaseAuth.instance.currentUser?.uid ?? '';
-
-  final List<ColorOption> colorOptions = [
-    ColorOption('흰색', Colors.white),
-    ColorOption('검정', Colors.black),
-    ColorOption('회색', Colors.grey),
-    ColorOption('빨강', Colors.red),
-    ColorOption('분홍', Colors.pink),
-    ColorOption('주황', Colors.orange),
-    ColorOption('노랑', Colors.yellow),
-    ColorOption('초록', Colors.green),
-    ColorOption('파랑', Colors.blue),
-    ColorOption('남색', Colors.indigo),
-    ColorOption('보라', Colors.purple),
-    ColorOption('갈색', Colors.brown),
-  ];
+  final ClothingAnalyzer _analyzer = ClothingAnalyzer();
 
   final List<Map<String, dynamic>> categories = [
+    {'label': '전체', 'icon': Icons.checkroom},
+    {'label': '한벌옷', 'icon': Icons.accessibility_new},
     {'label': '상의', 'icon': Icons.checkroom},
     {'label': '하의', 'icon': Icons.checkroom},
     {'label': '신발', 'icon': Icons.checkroom},
@@ -111,6 +94,74 @@ class _AddClothingPageState extends State<AddClothingPage> {
     );
   }
 
+  Future<void> _analyzeAndSetClothing() async {
+    if (_imageFile != null) {
+      setState(() {
+        _isAnalyzing = true;
+      });
+
+      try {
+        final result = await _analyzer.analyzeClothing(_imageFile!.path);
+
+        setState(() {
+          selectedCategory = result['category'];
+          selectedColor = result['color'];
+          _isAnalyzing = false;
+        });
+
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text('AI 분석 결과'),
+              content: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('카테고리: ${result['category']}'),
+                    Text('색상: ${result['color']}'),
+                    SizedBox(height: 8),
+                    Text('AI 설명:'),
+                    Text(result['description']),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('취소'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      selectedCategory = result['category'];
+                      selectedColor = result['color'];
+                      memoController.text = result['memo'] ?? '';  // 메모 필드에 설명 추가
+                    });
+                    Navigator.pop(context);
+                  },
+                  child: Text('적용'),
+                ),
+              ],
+            ),
+          );
+        }
+      } catch (e) {
+        print('분석 오류: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('이미지 분석 중 오류가 발생했습니다')),
+          );
+        }
+      } finally {
+        setState(() {
+          _isAnalyzing = false;
+        });
+      }
+    }
+  }
+
   Future<void> _pickImage() async {
     try {
       final ImageSource? source = await _showImageSourceDialog(context);
@@ -127,6 +178,7 @@ class _AddClothingPageState extends State<AddClothingPage> {
           setState(() {
             _imageFile = File(pickedFile.path);
           });
+          await _analyzeAndSetClothing();
         }
       }
     } catch (e) {
@@ -147,7 +199,8 @@ class _AddClothingPageState extends State<AddClothingPage> {
       final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
       final String uuid = const Uuid().v4();
       final String extension = path.extension(_imageFile!.path);
-      final String fileName = '${_userId}_${widget.childInfo['childId']}_${timestamp}_$uuid$extension';
+      final String fileName =
+          '${_userId}_${widget.childInfo['childId']}_${timestamp}_$uuid$extension';
 
       final Reference storageRef = _storage
           .ref()
@@ -201,13 +254,16 @@ class _AddClothingPageState extends State<AddClothingPage> {
       return;
     }
 
+    if (selectedCategory == '전체') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('카테고리를 선택해주세요')),
+      );
+      return;
+    }
+
     try {
       final imageUrl = await _uploadImage();
       if (imageUrl != null) {
-        final colorName = colorOptions
-            .firstWhere((option) => option.color == selectedColor)
-            .name;
-
         final databaseRef = FirebaseDatabase.instance
             .ref()
             .child('users')
@@ -222,7 +278,7 @@ class _AddClothingPageState extends State<AddClothingPage> {
           'size': sizeController.text,
           'category': selectedCategory,
           'season': selectedSeason,
-          'color': colorName,
+          'color': selectedColor,
           'memo': memoController.text,
           'imageUrl': imageUrl,
           'createdAt': ServerValue.timestamp,
@@ -239,72 +295,98 @@ class _AddClothingPageState extends State<AddClothingPage> {
       );
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
         backgroundColor: const Color(0xFFFDF6F0),
-    appBar: AppBar(
-    backgroundColor: const Color(0xFFFDF6F0),
-    elevation: 0,
-    leading: IconButton(
-    icon: Icon(Icons.arrow_back, color: Colors.black),
-    onPressed: () => Navigator.pop(context),
-    ),
-    title: Text(
-    '${widget.childInfo['childName']}의 옷 추가',
-    style: TextStyle(
-    color: Colors.black,
-    fontSize: 18,
-    fontWeight: FontWeight.bold,
-    ),
-    ),
-    ),
-    body: SingleChildScrollView(
-    padding: const EdgeInsets.all(20),
-    child: Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-    Center(
-    child: GestureDetector(
-    onTap: _pickImage,
+        appBar: AppBar(
+          backgroundColor: const Color(0xFFFDF6F0),
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: Colors.black),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Text(
+            '${widget.childInfo['childName']}의 옷 추가',
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        body: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+            Center(
+            child: Stack(
+            children: [
+              GestureDetector(
+              onTap: _pickImage,
+              child: Container(
+                width: 150,
+                height: 150,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      blurRadius: 10,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                ),
+                child: _imageFile != null
+                    ? ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Image.file(
+                    _imageFile!,
+                    fit: BoxFit.cover,
+                  ),
+                )
+                    : Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.add_a_photo,
+                        size: 40, color: Colors.grey),
+                    SizedBox(height: 8),
+                    Text(
+                      '사진 가져오기',
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (_isAnalyzing)
+        Positioned.fill(
     child: Container(
-    width: 150,
-    height: 150,
     decoration: BoxDecoration(
-    color: Colors.white,
+    color: Colors.black.withOpacity(0.5),
     borderRadius: BorderRadius.circular(20),
-    boxShadow: [
-    BoxShadow(
-    color: Colors.grey.withOpacity(0.1),
-    blurRadius: 10,
-    spreadRadius: 1,
     ),
-    ],
-    ),
-    child: _imageFile != null
-    ? ClipRRect(
-    borderRadius: BorderRadius.circular(20),
-    child: Image.file(
-    _imageFile!,
-    fit: BoxFit.cover,
-    ),
-    )
-        : Column(
-    mainAxisAlignment: MainAxisAlignment.center,
+    child: Center(
+    child: Column(
+    mainAxisSize: MainAxisSize.min,
     children: [
-    Icon(Icons.add_a_photo, size: 40, color: Colors.grey),
+    CircularProgressIndicator(color: Colors.white),
     SizedBox(height: 8),
     Text(
-    '사진 가져오기',
-    style: TextStyle(
-    color: Colors.grey,
-    fontSize: 14,
-    ),
+    'AI 분석중...',
+    style: TextStyle(color: Colors.white),
     ),
     ],
     ),
     ),
+    ),
+    ),
+    ],
     ),
     ),
     SizedBox(height: 40),
@@ -408,129 +490,158 @@ class _AddClothingPageState extends State<AddClothingPage> {
     hintText: '사이즈를 입력하세요',
     ),
     ),
-
-    // 계절 선택
     SizedBox(height: 24),
-    Text(
-    '계절',
-    style: TextStyle(
-    fontSize: 16,
-    fontWeight: FontWeight.bold,
-    ),
-    ),
-    SizedBox(height: 8),
-    Wrap(
-    spacing: 8,
-    children: [
-    '봄', '여름', '가을', '겨울', '사계절'
-    ].map((season) => ChoiceChip(
-    label: Text(season),
-    selected: selectedSeason == season,
-    onSelected: (bool selected) {
-    setState(() {
-    selectedSeason = selected ? season : selectedSeason;
-    });
-    },
-    )).toList(),
-    ),
+                Text(
+                  '계절',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 8),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: ['봄', '여름', '가을', '겨울', '사계절'].map((season) {
+                      bool isSelected = selectedSeason == season;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ChoiceChip(
+                          label: Text(season),
+                          selected: isSelected,
+                          onSelected: (bool selected) {
+                            setState(() {
+                              selectedSeason = selected ? season : '사계절';
+                            });
+                          },
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                SizedBox(height: 24),
 
-    // 색상 선택
-    SizedBox(height: 24),
-    Text(
-    '색상',
-    style: TextStyle(
-    fontSize: 16,
-    fontWeight: FontWeight.bold,
-    ),
-    ),
-    SizedBox(height: 8),
-    Wrap(
-    spacing: 8,
-    runSpacing: 8,
-    children: colorOptions.map((option) => GestureDetector(
-    onTap: () {
-    setState(() {
-    selectedColor = option.color;
-    });
-    },
-    child: Container(
-    width: 40,
-    height: 40,
-    decoration: BoxDecoration(
-    color: option.color,
-    border: Border.all(
-    color: selectedColor == option.color
-    ? Colors.blue
-        : Colors.grey,
-    width: selectedColor == option.color ? 2 : 1,
-    ),
-    borderRadius: BorderRadius.circular(8),
-    ),
-    child: selectedColor == option.color
-    ? Icon(
-    Icons.check,
-    color: option.color.computeLuminance() > 0.5
-    ? Colors.black
-        : Colors.white,
-    )
-        : null,
-    ),
-    )).toList(),
-    ),
+                Text(
+                  '색상',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 8),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildColorChoice('흰색', Colors.white),
+                      _buildColorChoice('검정', Colors.black),
+                      _buildColorChoice('회색', Colors.grey),
+                      _buildColorChoice('빨강', Colors.red),
+                      _buildColorChoice('분홍', Colors.pink),
+                      _buildColorChoice('주황', Colors.orange),
+                      _buildColorChoice('노랑', Colors.yellow),
+                      _buildColorChoice('초록', Colors.green),
+                      _buildColorChoice('파랑', Colors.blue),
+                      _buildColorChoice('남색', Colors.indigo),
+                      _buildColorChoice('보라', Colors.purple),
+                      _buildColorChoice('갈색', Colors.brown),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 24),
 
-    // 메모 입력
-    SizedBox(height: 24),
-    Text(
-    '메모',
-    style: TextStyle(
-    fontSize: 16,
-    fontWeight: FontWeight.bold,
-    ),
-    ),
-    SizedBox(height: 8),
-    TextField(
-    controller: memoController,
-    maxLines: 3,
-    decoration: InputDecoration(
-    filled: true,
-      fillColor: Colors.white,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
-      ),
-      hintText: '메모를 입력하세요',
-    ),
-    ),
+                Text(
+                  '메모',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 8),
+                TextField(
+                  controller: memoController,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    hintText: '메모를 입력하세요',
+                  ),
+                ),
+                SizedBox(height: 40),
 
-      SizedBox(height: 40),
-
-      // 등록 버튼
-      SizedBox(
-        width: double.infinity,
-        height: 50,
-        child: ElevatedButton(
-          onPressed: _isUploading ? null : () => _saveClothing(),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Color(0xFFFF9B9B),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: _isUploading ? null : () => _saveClothing(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color(0xFFFF9B9B),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: _isUploading
+                        ? CircularProgressIndicator(color: Colors.white)
+                        : Text(
+                      '등록',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
-          child: _isUploading
-              ? CircularProgressIndicator(color: Colors.white)
-              : Text(
-            '등록',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+        ),
+    );
+  }
+  Widget _buildColorChoice(String colorName, Color color) {
+    bool isSelected = selectedColor == colorName;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8.0),
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            selectedColor = colorName;
+          });
+        },
+        child: Column(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected ? Colors.blue : Colors.grey[300]!,
+                  width: isSelected ? 2 : 1,
+                ),
+              ),
+              child: isSelected
+                  ? Icon(
+                Icons.check,
+                color: color.computeLuminance() > 0.5 ? Colors.black : Colors.white,
+              )
+                  : null,
             ),
-          ),
+            SizedBox(height: 4),
+            Text(
+              colorName,
+              style: TextStyle(
+                fontSize: 12,
+                color: isSelected ? Colors.blue : Colors.grey[600],
+              ),
+            ),
+          ],
         ),
       ),
-    ],
-    ),
-    ),
     );
   }
 }

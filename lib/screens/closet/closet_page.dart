@@ -124,7 +124,7 @@ class _ClosetPageState extends State<ClosetPage> {
   Future<void> deleteSelectedItems() async {
     try {
       for (String key in selectedItems) {
-        final categories = ['상의', '하의', '신발'];
+        final categories = ['한벌옷','상의', '하의', '신발'];
         for (String category in categories) {
           final categoryRef = _clothingRef.child(category);
           final itemSnapshot = await categoryRef.child(key).get();
@@ -280,6 +280,8 @@ class _ClosetPageState extends State<ClosetPage> {
     children: [
     _buildCategoryButton('전체', Icons.checkroom),
     SizedBox(width: 16),
+      _buildCategoryButton('한벌옷', Icons.accessibility_new),  // 한벌옷 추가
+      SizedBox(width: 16),
     _buildCategoryButton('상의', Icons.checkroom),
     SizedBox(width: 16),
     _buildCategoryButton('하의', Icons.checkroom),
@@ -314,14 +316,15 @@ class _ClosetPageState extends State<ClosetPage> {
             _buildColorBox('전체', Colors.transparent),
             _buildColorBox('흰색', Colors.white),
             _buildColorBox('검정', Colors.black),
-            _buildColorBox('회색', Colors.grey),
             _buildColorBox('빨강', Colors.red),
-            _buildColorBox('분홍', Colors.pink),
             _buildColorBox('주황', Colors.orange),
             _buildColorBox('노랑', Colors.yellow),
             _buildColorBox('초록', Colors.green),
             _buildColorBox('파랑', Colors.blue),
+            _buildColorBox('남색', Colors.indigo),
             _buildColorBox('보라', Colors.purple),
+            _buildColorBox('회색', Colors.grey),
+            _buildColorBox('분홍', Colors.pink),
             _buildColorBox('갈색', Colors.brown),
           ],
         ),
