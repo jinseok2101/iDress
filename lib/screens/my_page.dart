@@ -6,7 +6,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:image_picker/image_picker.dart'; // 이미지 선택을 위한 패키지 추가
 
-
 class MyPage extends StatefulWidget {
   const MyPage({super.key});
 
@@ -107,26 +106,23 @@ class _MyPageState extends State<MyPage> {
             Center(
               child: Column(
                 children: [
-                  GestureDetector(
-                    onTap: _pickImage,  // 프로필 이미지 클릭 시 사진 변경
-                    child: Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        image: DecorationImage(
-                          image: profileImageUrl != null
-                              ? (profileImageUrl!.startsWith('http')  // URL인지 확인
-                              ? NetworkImage(profileImageUrl!)  // URL이면 NetworkImage 사용
-                              : FileImage(File(profileImageUrl!))  // 로컬 파일이면 FileImage 사용
-                          )
-                              : const AssetImage('assets/profile.jpg') as ImageProvider,  // 기본 프로필 이미지
-                          fit: BoxFit.cover,
-                        ),
-                        border: Border.all(
-                          color: Colors.white,
-                          width: 3,
-                        ),
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      image: DecorationImage(
+                        image: profileImageUrl != null
+                            ? (profileImageUrl!.startsWith('http')  // URL인지 확인
+                            ? NetworkImage(profileImageUrl!)  // URL이면 NetworkImage 사용
+                            : FileImage(File(profileImageUrl!))  // 로컬 파일이면 FileImage 사용
+                        )
+                            : const AssetImage('assets/profile.jpg') as ImageProvider,  // 기본 프로필 이미지
+                        fit: BoxFit.cover,
+                      ),
+                      border: Border.all(
+                        color: Colors.white,
+                        width: 3,
                       ),
                     ),
                   ),
@@ -240,8 +236,6 @@ class _MyPageState extends State<MyPage> {
     );
   }
 
-
-
   Widget _buildMenuItem(IconData icon, String title, {VoidCallback? onTap}) {
     return Container(
       color: Colors.white,
@@ -254,13 +248,52 @@ class _MyPageState extends State<MyPage> {
     );
   }
 
+  // 약관을 클릭하면 다이얼로그가 나타나도록 하는 부분
   Widget _buildPolicyItem(String title, BuildContext context) {
     return Container(
       width: double.infinity,
       color: Colors.white,
       child: InkWell(
         onTap: () async {
-          if (title == '로그아웃') {
+          if (title == '서비스 이용 약관') {
+            // 서비스 이용 약관을 클릭했을 때 다이얼로그 표시
+            showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: const Text('서비스 이용 약관'),
+                  content: const Text('이곳에 서비스 이용 약관이 표시됩니다'),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);  // 다이얼로그 닫기
+                      },
+                      child: const Text('확인'),
+                    ),
+                  ],
+                );
+              },
+            );
+          } else if (title == '개인 정보 처리 방침') {
+            // 개인 정보 처리 방침을 클릭했을 때 다이얼로그 표시
+            showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: const Text('개인 정보 처리 방침'),
+                  content: const Text('이곳에 개인 정보 처리 방침이 표시됩니다'),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);  // 다이얼로그 닫기
+                      },
+                      child: const Text('확인'),
+                    ),
+                  ],
+                );
+              },
+            );
+          } else if (title == '로그아웃') {
             showDialog(
               context: context,
               builder: (BuildContext context) {
