@@ -5,6 +5,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'closetpage/add_clothing_page.dart';
 import 'closetpage/fitting_in_closet_top.dart';
 import 'closetpage/clothing_detail_page.dart';
+import 'closetpage/fitting_in_closet_set.dart';
 
 class ClosetPage extends StatefulWidget {
   final Map<String, dynamic> childInfo;
@@ -655,35 +656,35 @@ class _ClosetPageState extends State<ClosetPage> {
                 .child('children')
                 .child(_childId!)
                 .child('clothing')
-                .child('상의');
+                .child('한벌옷');
 
             final snapshot = await clothingRef.get();
             if (snapshot.exists) {
               final data = snapshot.value as Map<dynamic, dynamic>;
 
-              final topClothes = data.entries
-                  .where((entry) {
-                final clothing = entry.value as Map<dynamic, dynamic>;
-                return clothing['category'] == '상의';
-              })
-                  .map((entry) => entry.value as Map<dynamic, dynamic>)
-                  .toList();
+              // 한벌옷 데이터를 리스트로 변환
+              List<Map<dynamic, dynamic>> setClothingList = [];
+              data.forEach((key, value) {
+                if (value is Map && value['category'] == '한벌옷') {
+                  setClothingList.add(Map<dynamic, dynamic>.from(value));
+                }
+              });
 
               if (mounted) {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => FittingInClosetTop(
+                    builder: (context) => FittingInClosetSet(
                       userId: _userId,
                       childId: _childId!,
-                      topClothes: topClothes,
+                      setClothes: setClothingList,  // 변환된 리스트 전달
                     ),
                   ),
                 );
               }
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('등록된 옷이 없습니다')),
+                const SnackBar(content: Text('등록된 한벌옷이 없습니다')),
               );
             }
           } catch (e) {

@@ -4,11 +4,13 @@ import 'dart:io';
 class FittingResultPage extends StatelessWidget {
   final File topImageFile;
   final File bottomImageFile;
+  final bool isOnepiece;  // 한벌옷인지 여부를 확인하는 변수 추가
 
   const FittingResultPage({
     Key? key,
     required this.topImageFile,
     required this.bottomImageFile,
+    this.isOnepiece = false,  // 기본값은 false (상하의 분리)
   }) : super(key: key);
 
   @override
@@ -58,16 +60,25 @@ class FittingResultPage extends StatelessWidget {
                 ),
               ],
             ),
-            child: Column(
+            child: isOnepiece  // 한벌옷인 경우와 상하의인 경우를 구분
+                ? Image.file(
+              topImageFile,  // 한벌옷인 경우 topImageFile만 사용
+              fit: BoxFit.contain,
+            )
+                : Column(  // 상하의인 경우 둘 다 표시
               children: [
                 Expanded(
-                  child: Image.file(
+                  child: topImageFile.path.isEmpty
+                      ? Center(child: Text('상의를 선택하지 않았습니다'))
+                      : Image.file(
                     topImageFile,
                     fit: BoxFit.contain,
                   ),
                 ),
                 Expanded(
-                  child: Image.file(
+                  child: bottomImageFile.path.isEmpty
+                      ? Center(child: Text('하의를 선택하지 않았습니다'))
+                      : Image.file(
                     bottomImageFile,
                     fit: BoxFit.contain,
                   ),
