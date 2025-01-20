@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:last3/screens/authentication/auth_service.dart';
 import 'package:go_router/go_router.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // FirebaseAuth import 추가
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,10 +17,29 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isPasswordVisible = false;
 
   @override
+  void initState() {
+    super.initState();
+
+    // 앱 실행 시 로그인 상태 확인
+    _checkIfUserIsLoggedIn();
+  }
+
+  @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  // Firebase에서 사용자가 로그인했는지 확인
+  Future<void> _checkIfUserIsLoggedIn() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    // 이미 로그인한 사용자가 있다면 홈 화면으로 이동
+    if (user != null) {
+      debugPrint('이미 로그인된 사용자: ${user.email}');
+      context.go('/home');  // 로그인 후 홈 화면으로 이동
+    }
   }
 
   void _handleLogin() async {
@@ -34,9 +54,6 @@ class _LoginScreenState extends State<LoginScreen> {
       _showErrorSnackbar('로그인 정보가 올바르지 않습니다.');
     }
   }
-
-
-
 
   Future<void> _handleGoogleSignIn() async {
     try {
@@ -72,7 +89,6 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 const SizedBox(height: 40),
                 // 로고 섹션
-                // 로고 섹션
                 Center(
                   child: Image.asset(
                     'assets/images/logo2.png', // logo2.png 경로
@@ -81,7 +97,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     fit: BoxFit.contain, // 이미지 비율 유지
                   ),
                 ),
-
                 const SizedBox(height: 40),
 
                 // 이메일 입력 필드

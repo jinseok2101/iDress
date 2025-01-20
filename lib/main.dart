@@ -1,4 +1,3 @@
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -15,7 +14,6 @@ import 'package:last3/screens/my_page.dart';
 import 'package:last3/screens/home/notice_page.dart';
 import 'package:last3/screens/home/information.dart';
 
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -23,8 +21,6 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-
-
 
   // Kakao SDK 초기화
   KakaoSdk.init(
@@ -54,33 +50,24 @@ class MyApp extends StatelessWidget {
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       routerConfig: GoRouter(
-        initialLocation: '/start',
+        initialLocation: initialRoute, // 로그인 상태에 따라 초기 경로 설정
         routes: [
-          GoRoute(path: '/start',
-              builder: (context, state) => StartScreen()),
-          GoRoute(path: '/login',
-              builder: (context, state) => LoginScreen()),
-          GoRoute(path: '/signup',
-              builder: (context, state) => SignupScreen()),
+          GoRoute(path: '/start', builder: (context, state) => StartScreen()),
+          GoRoute(path: '/login', builder: (context, state) => LoginScreen()),
+          GoRoute(path: '/signup', builder: (context, state) => SignupScreen()),
           GoRoute(
-              path: '/main',
-              builder: (context, state) {
-                // extra 데이터를 Map<String, dynamic>으로 캐스팅
-                final Map<String, dynamic>? childInfo = state.extra as Map<String, dynamic>?;
-                return MainScreen(childInfo: childInfo);
-              }
+            path: '/main',
+            builder: (context, state) {
+              // extra 데이터를 Map<String, dynamic>으로 캐스팅
+              final Map<String, dynamic>? childInfo = state.extra as Map<String, dynamic>?;
+              return MainScreen(childInfo: childInfo);
+            },
           ),
-          GoRoute(path: '/home',
-              builder: (context, state) => HomeScreen()),
-          GoRoute(path: '/register',
-              builder: (context, state) => RegisterScreen()),
-          GoRoute(path: '/mypage',
-              builder: (context, state) => MyPage()),
-          GoRoute(path: '/notice',
-              builder: (context, state) => NoticePage()),
-          GoRoute(path: '/information',
-              builder: (context, state) => InformationPage()),
-
+          GoRoute(path: '/home', builder: (context, state) => HomeScreen()),
+          GoRoute(path: '/register', builder: (context, state) => RegisterScreen()),
+          GoRoute(path: '/mypage', builder: (context, state) => MyPage()),
+          GoRoute(path: '/notice', builder: (context, state) => NoticePage()),
+          GoRoute(path: '/information', builder: (context, state) => InformationPage()),
         ],
       ),
     );
