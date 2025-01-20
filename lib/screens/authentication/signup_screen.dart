@@ -30,10 +30,10 @@ Future<void> saveUserToFirebase({
   await databaseRef.set({
     "username": username,
     "phone": phone,
-    if (id != null) "id": id, // 일반 로그인 사용자만 저장
-    if (passwordHash != null) "passwordHash": passwordHash, // 일반 로그인 사용자만 저장
+    if (id != null) "id": id,
+    if (passwordHash != null) "passwordHash": passwordHash,
     "createdAt": timestamp,
-    if (profileImageUrl != null) "profileImageUrl": profileImageUrl, // 프로필 이미지 URL 추가
+    if (profileImageUrl != null) "profileImageUrl": profileImageUrl,
   });
 }
 
@@ -46,7 +46,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   final _confirmPasswordController = TextEditingController();
 
   bool _isLoading = false;
-  XFile? _profileImage; // 선택한 프로필 이미지 파일
+  XFile? _profileImage;
 
   @override
   void dispose() {
@@ -58,7 +58,6 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     super.dispose();
   }
 
-  // 이미지 선택 함수
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
@@ -69,17 +68,12 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     }
   }
 
-  // 이미지 업로드 함수
   Future<String?> _uploadImageToFirebase(XFile imageFile) async {
     try {
       final storageRef = FirebaseStorage.instance.ref();
       final profileImagesRef = storageRef.child("parent_profile/${DateTime.now().millisecondsSinceEpoch}.jpg");
-
-      // 이미지 업로드
       final uploadTask = profileImagesRef.putFile(File(imageFile.path));
       final snapshot = await uploadTask;
-
-      // 업로드 후 이미지 URL을 가져옴
       final imageUrl = await snapshot.ref.getDownloadURL();
       return imageUrl;
     } catch (e) {
@@ -88,47 +82,130 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     }
   }
 
+  Future<bool> isIdDuplicated(String id) async {
+    final databaseRef = FirebaseDatabase.instance.ref("users");
+    final snapshot = await databaseRef.orderByChild("id").equalTo(id).get();
+    return snapshot.exists;
+  }
+
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     try {
+      final id = _idController.text;
+
+      // ID 중복 확인을 먼저 수행
+      final isDuplicate = await isIdDuplicated(id);
+      if (isDuplicate) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('이미 사용 중인 ID입니다. 다른 ID를 입력해주세요.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      // 현재 인증된 사용자 확인
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
         throw Exception('사용자가 인증되지 않았습니다.');
       }
 
-      final uid = user.uid; // Firebase Authentication에서 고유 UID 가져오기
-
       String? profileImageUrl;
       if (_profileImage != null) {
-        // Firebase Storage에 이미지 업로드하고 URL 받아오기
         profileImageUrl = await _uploadImageToFirebase(_profileImage!);
       }
 
+      // 사용자 정보 저장
       await saveUserToFirebase(
-        uid: uid,
+        uid: user.uid,
         username: _usernameController.text,
         phone: _phoneController.text,
         id: _idController.text,
-        passwordHash: Auth().hashPassword(_passwordController.text), // 비밀번호 해시 추가 필요
+        passwordHash: Auth().hashPassword(_passwordController.text),
         profileImageUrl: profileImageUrl,
       );
-      debugPrint('회원가입: 저장된 해시 비밀번호 = ${Auth().hashPassword(_passwordController.text)}');
 
       if (mounted) {
         context.go('/home');
       }
     } catch (e) {
       if (mounted) {
+        // 구체적인 오류 메시지 표시
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('회원가입 중 오류가 발생했습니다')),
+          SnackBar(
+            content: Text('회원가입 중 오류가 발생했습니다: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
       setState(() => _isLoading = false);
     }
+  }
+
+  Widget _buildIdInputField() {
+    return TextFormField(
+      controller: _idController,
+      decoration: InputDecoration(
+        labelText: '사용할 ID',
+        prefixIcon: const Icon(Icons.account_circle_outlined),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade200),
+        ),
+        suffixIcon: IconButton(
+          icon: const Icon(Icons.check_circle_outline),
+          onPressed: () async {
+            if (_idController.text.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('ID를 입력해주세요')),
+              );
+              return;
+            }
+
+            bool isDuplicated = await isIdDuplicated(_idController.text);
+            if (isDuplicated) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('이미 사용 중인 ID입니다. 다른 ID를 입력해주세요.'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            } else {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('사용 가능한 ID입니다.'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            }
+          },
+        ),
+      ),
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'ID를 입력해주세요';
+        }
+        final idRegExp = RegExp(r'^[가-힣a-zA-Z0-9]+$');
+        if (!idRegExp.hasMatch(value)) {
+          return '한글, 영문, 숫자만 사용 가능합니다';
+        }
+        return null;
+      },
+    );
   }
 
   @override
@@ -153,12 +230,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 48),
-
-                  // 이미지 선택 UI 추가
                   _buildImagePicker(),
                   const SizedBox(height: 24),
-
-                  // 기존 입력 필드들
                   _buildInputField(
                     controller: _usernameController,
                     label: '닉네임',
@@ -195,21 +268,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  _buildInputField(
-                    controller: _idController,
-                    label: '사용할 ID',
-                    prefixIcon: Icons.account_circle_outlined,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'ID를 입력해주세요';
-                      }
-                      final idRegExp = RegExp(r'^[가-힣a-zA-Z0-9]+$');
-                      if (!idRegExp.hasMatch(value)) {
-                        return '한글, 영문, 숫자만 사용 가능합니다';
-                      }
-                      return null;
-                    },
-                  ),
+                  _buildIdInputField(), // 수정된 ID 입력 필드
                   const SizedBox(height: 16),
                   _buildInputField(
                     controller: _passwordController,
@@ -283,7 +342,6 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     );
   }
 
-  // 이미지 선택 UI
   Widget _buildImagePicker() {
     return Column(
       children: [
