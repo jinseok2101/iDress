@@ -24,7 +24,7 @@ class ClothingDetailPage extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<ClothingDetailPage> createState() => _ClothingDetailPageState();
+  _ClothingDetailPageState createState() => _ClothingDetailPageState();
 }
 
 class _ClothingDetailPageState extends State<ClothingDetailPage> {
@@ -198,7 +198,6 @@ class _ClothingDetailPageState extends State<ClothingDetailPage> {
                 fit: BoxFit.cover,
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.all(24.0),
               child: Column(
