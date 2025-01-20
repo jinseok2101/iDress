@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
 import 'package:uuid/uuid.dart';
 import 'fitting_in_closet_pants.dart';
+import 'package:last3/screens/fitting_room/fittingroom/fitting_result_page.dart';
 
 class FittingInClosetTop extends StatefulWidget {
   final String userId;
@@ -405,7 +406,8 @@ class _FittingInClosetTopState extends State<FittingInClosetTop> {
         child: ElevatedButton(
           onPressed: () async {
             try {
-              final clothingRef = FirebaseDatabase.instance
+              // 하의 확인
+              final pantsRef = FirebaseDatabase.instance
                   .ref()
                   .child('users')
                   .child(widget.userId)
@@ -414,10 +416,9 @@ class _FittingInClosetTopState extends State<FittingInClosetTop> {
                   .child('clothing')
                   .child('하의');
 
-              final snapshot = await clothingRef.get();
+              final snapshot = await pantsRef.get();
               if (snapshot.exists) {
                 final data = snapshot.value as Map<dynamic, dynamic>;
-
                 final pantsClothes = data.entries
                     .where((entry) {
                   final clothing = entry.value as Map<dynamic, dynamic>;
@@ -426,7 +427,7 @@ class _FittingInClosetTopState extends State<FittingInClosetTop> {
                     .map((entry) => entry.value as Map<dynamic, dynamic>)
                     .toList();
 
-                if (mounted) {
+                if (mounted && pantsClothes.isNotEmpty) {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -434,7 +435,45 @@ class _FittingInClosetTopState extends State<FittingInClosetTop> {
                         userId: widget.userId,
                         childId: widget.childId,
                         pantsClothes: pantsClothes,
-                        selectedTopImageUrl: selectedTopId!,  // 선택된 상의의 이미지 URL 전달
+                        selectedTopImageUrl: selectedTopId!,
+                      ),
+                    ),
+                  );
+                } else {
+                  // 하의가 없는 경우 바로 결과 페이지로 이동
+                  final selectedTop = widget.topClothes.firstWhere(
+                        (top) => top['imageUrl'] == selectedTopId,
+                    orElse: () => {},
+                  );
+
+                  if (selectedTop.isNotEmpty) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => FittingResultPage(
+                          topImageFile: File(selectedTop['imageUrl']),
+                          bottomImageFile: File(''),
+                          isOnepiece: false,
+                        ),
+                      ),
+                    );
+                  }
+                }
+              } else {
+                // 하의 카테고리가 없는 경우 바로 결과 페이지로 이동
+                final selectedTop = widget.topClothes.firstWhere(
+                      (top) => top['imageUrl'] == selectedTopId,
+                  orElse: () => {},
+                );
+
+                if (selectedTop.isNotEmpty) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => FittingResultPage(
+                        topImageFile: File(selectedTop['imageUrl']),
+                        bottomImageFile: File(''),
+                        isOnepiece: false,
                       ),
                     ),
                   );

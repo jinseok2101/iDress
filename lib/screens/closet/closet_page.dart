@@ -6,6 +6,9 @@ import 'closetpage/add_clothing_page.dart';
 import 'closetpage/fitting_in_closet_top.dart';
 import 'closetpage/clothing_detail_page.dart';
 import 'closetpage/fitting_in_closet_set.dart';
+import 'closetpage/fitting_in_closet_pants.dart';
+import 'package:last3/screens/fitting_room/fittingroom/fitting_result_page.dart';
+import 'dart:io';
 
 class ClosetPage extends StatefulWidget {
   final Map<String, dynamic> childInfo;
@@ -649,7 +652,8 @@ class _ClosetPageState extends State<ClosetPage> {
           );
         } else if (label == '피팅하기') {
           try {
-            final clothingRef = FirebaseDatabase.instance
+            // 한벌옷 확인
+            final setRef = FirebaseDatabase.instance
                 .ref()
                 .child('users')
                 .child(_userId)
@@ -658,33 +662,113 @@ class _ClosetPageState extends State<ClosetPage> {
                 .child('clothing')
                 .child('한벌옷');
 
-            final snapshot = await clothingRef.get();
-            if (snapshot.exists) {
-              final data = snapshot.value as Map<dynamic, dynamic>;
-
-              // 한벌옷 데이터를 리스트로 변환
+            final setSnapshot = await setRef.get();
+            if (setSnapshot.exists) {
+              final setData = setSnapshot.value as Map<dynamic, dynamic>;
               List<Map<dynamic, dynamic>> setClothingList = [];
-              data.forEach((key, value) {
+              setData.forEach((key, value) {
                 if (value is Map && value['category'] == '한벌옷') {
                   setClothingList.add(Map<dynamic, dynamic>.from(value));
                 }
               });
 
-              if (mounted) {
+              if (mounted && setClothingList.isNotEmpty) {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => FittingInClosetSet(
                       userId: _userId,
                       childId: _childId!,
-                      setClothes: setClothingList,  // 변환된 리스트 전달
+                      setClothes: setClothingList,
                     ),
                   ),
                 );
+                return;  // 한벌옷이 있으면 여기서 종료
               }
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('등록된 한벌옷이 없습니다')),
+            }
+
+            // 상의 확인
+            final topRef = FirebaseDatabase.instance
+                .ref()
+                .child('users')
+                .child(_userId)
+                .child('children')
+                .child(_childId!)
+                .child('clothing')
+                .child('상의');
+
+            final topSnapshot = await topRef.get();
+            if (topSnapshot.exists) {
+              final topData = topSnapshot.value as Map<dynamic, dynamic>;
+              List<Map<dynamic, dynamic>> topClothingList = [];
+              topData.forEach((key, value) {
+                if (value is Map && value['category'] == '상의') {
+                  topClothingList.add(Map<dynamic, dynamic>.from(value));
+                }
+              });
+
+              if (mounted && topClothingList.isNotEmpty) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => FittingInClosetTop(
+                      userId: _userId,
+                      childId: _childId!,
+                      topClothes: topClothingList,
+                    ),
+                  ),
+                );
+                return;  // 상의가 있으면 여기서 종료
+              }
+            }
+
+            // 하의 확인
+            final pantsRef = FirebaseDatabase.instance
+                .ref()
+                .child('users')
+                .child(_userId)
+                .child('children')
+                .child(_childId!)
+                .child('clothing')
+                .child('하의');
+
+            final pantsSnapshot = await pantsRef.get();
+            if (pantsSnapshot.exists) {
+              final pantsData = pantsSnapshot.value as Map<dynamic, dynamic>;
+              List<Map<dynamic, dynamic>> pantsClothingList = [];
+              pantsData.forEach((key, value) {
+                if (value is Map && value['category'] == '하의') {
+                  pantsClothingList.add(Map<dynamic, dynamic>.from(value));
+                }
+              });
+
+              if (mounted && pantsClothingList.isNotEmpty) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => FittingInClosetPants(
+                      userId: _userId,
+                      childId: _childId!,
+                      pantsClothes: pantsClothingList,
+                      selectedTopImageUrl: '',  // 빈 문자열 전달
+                    ),
+                  ),
+                );
+                return;  // 하의가 있으면 여기서 종료
+              }
+            }
+
+            // 모든 의류가 없는 경우 결과 페이지로 이동
+            if (mounted) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => FittingResultPage(
+                    topImageFile: File(''),
+                    bottomImageFile: File(''),
+                    isOnepiece: false,
+                  ),
+                ),
               );
             }
           } catch (e) {
