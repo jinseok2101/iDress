@@ -45,8 +45,8 @@ class FittingResultPage extends StatelessWidget {
         children: [
           // 메인 이미지 영역
           Container(
-            height: MediaQuery.of(context).size.height * 0.65,
-            margin: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+            height: MediaQuery.of(context).size.height * 0.75,  // 높이 증가
+            margin: const EdgeInsets.fromLTRB(24, 8, 24, 16),  // 하단 마진 감소
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
@@ -60,12 +60,12 @@ class FittingResultPage extends StatelessWidget {
                 ),
               ],
             ),
-            child: isOnepiece  // 한벌옷인 경우와 상하의인 경우를 구분
+            child: isOnepiece
                 ? Image.file(
-              topImageFile,  // 한벌옷인 경우 topImageFile만 사용
+              topImageFile,
               fit: BoxFit.contain,
             )
-                : Column(  // 상하의인 경우 둘 다 표시
+                : Column(
               children: [
                 Expanded(
                   child: topImageFile.path.isEmpty
@@ -87,9 +87,12 @@ class FittingResultPage extends StatelessWidget {
             ),
           ),
 
+          // Spacer 추가하여 버튼들을 아래로 밀기
+          Spacer(),
+
           // 하단 버튼들
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
+            padding: const EdgeInsets.only(bottom: 24, left: 24, right: 24),  // 하단 패딩 추가
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
@@ -129,42 +132,24 @@ class FittingResultPage extends StatelessWidget {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        width: 90,
-        height: 90,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey[300]!),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 1,
-              blurRadius: 4,
-              offset: Offset(0, 2),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 28,  // 아이콘 크기 감소
+            color: Colors.black87,
+          ),
+          const SizedBox(height: 4),  // 간격 감소
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,  // 글자 크기 감소
+              color: Colors.black87,
+              fontWeight: FontWeight.w500,
             ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 34,
-              color: Colors.blue,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.black87,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
