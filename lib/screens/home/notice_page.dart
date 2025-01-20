@@ -24,32 +24,43 @@ class NoticePage extends StatelessWidget {
       ),
       body: ListView(
         children: [
-          ExpansionTile(
-            title: const Text('공지사항 1'),
-            children: const [
-              Padding(
-                padding: EdgeInsets.all(8.0),
-                child: Text('공지사항 내용 1'),
-              ),
-            ],
+          // ExpansionTile을 감싸는 Container를 추가하여 배경색을 흰색으로 변경
+          Container(
+            color: Colors.white, // 배경색을 흰색으로 설정
+            child: ExpansionTile(
+              title: const Text('앱 버전 업데이트 안내'),
+              children: const [
+                Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Text('공지사항 내용 1'),
+                ),
+              ],
+            ),
           ),
-          ExpansionTile(
-            title: const Text('공지사항 2'),
-            children: const [
-              Padding(
-                padding: EdgeInsets.all(8.0),
-                child: Text('공지사항 내용 2'),
-              ),
-            ],
+          // 다른 ExpansionTile들도 같은 방식으로 감싸기
+          Container(
+            color: Colors.white,
+            child: ExpansionTile(
+              title: const Text('서버 점검 안내'),
+              children: const [
+                Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Text('공지사항 내용 2'),
+                ),
+              ],
+            ),
           ),
-          ExpansionTile(
-            title: const Text('공지사항 3'),
-            children: const [
-              Padding(
-                padding: EdgeInsets.all(8.0),
-                child: Text('공지사항 내용 3'),
-              ),
-            ],
+          Container(
+            color: Colors.white,
+            child: ExpansionTile(
+              title: const Text('IDress 이벤트 안내'),
+              children: const [
+                Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Text('공지사항 내용 3'),
+                ),
+              ],
+            ),
           ),
         ],
       ),
