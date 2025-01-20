@@ -153,7 +153,6 @@ class _MyPageState extends State<MyPage> {
             const SizedBox(height: 30),
 
             // 메뉴 리스트
-            _buildMenuItem(Icons.checkroom, '나의 아이 옷장'),
             _buildMenuItem(Icons.person_outline, '개인 정보', onTap: () => context.go('/information')), // 정보 페이지로 이동
             _buildNotificationSetting(), // 알림 설정 부분을 새로운 위젯으로 대체
 
