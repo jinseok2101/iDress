@@ -7,7 +7,6 @@ import 'package:path/path.dart' as path;
 import 'package:uuid/uuid.dart';
 import 'fitting_in_closet_top.dart';
 import 'package:last3/screens/fitting_room/fittingroom/fitting_result_page.dart';
-import 'package:last3/screens/fitting_room/fittingroom/fitting_loading_page.dart';
 
 class FittingInClosetSet extends StatefulWidget {
   final String userId;

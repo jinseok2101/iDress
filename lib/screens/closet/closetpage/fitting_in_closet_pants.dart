@@ -5,7 +5,6 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
 import 'package:uuid/uuid.dart';
-import 'package:last3/screens/fitting_room/fittingroom/fitting_result_page.dart';
 import 'package:last3/screens/fitting_room/fittingroom/fitting_loading_page.dart';
 
 
