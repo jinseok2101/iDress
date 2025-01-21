@@ -128,6 +128,10 @@ class Auth {
 
   // 로그아웃 및 사용자 삭제
   Future<void> logout(BuildContext context) async {
+    if (context.mounted) {
+      context.go('/start');
+    }
+
     try {
       // Firebase 로그아웃
       await _firebaseAuth.signOut();
@@ -158,9 +162,7 @@ class Auth {
     await prefs.clear();
     debugPrint('로컬 데이터 삭제 완료');
 
-    if (context.mounted) {
-      context.go('/start');
-    }
+
   }
 
 
