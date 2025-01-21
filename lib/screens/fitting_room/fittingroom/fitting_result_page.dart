@@ -7,7 +7,7 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 
-class FittingResultPage extends StatelessWidget {
+class FittingResultPage extends StatefulWidget {
   final Map<String, dynamic> childInfo;
   final File topImageFile;
   final File bottomImageFile;
@@ -20,6 +20,18 @@ class FittingResultPage extends StatelessWidget {
     required this.bottomImageFile,
     this.isOnepiece = false,
   }) : super(key: key);
+
+  @override
+  State<FittingResultPage> createState() => _FittingResultPageState();
+}
+
+class _FittingResultPageState extends State<FittingResultPage> {
+  @override
+  void initState() {
+    super.initState();
+    // 피팅 결과 생성 즉시 fittingHistory에 자동 저장
+    _saveToHistory();
+  }
 
   Future<File> _compressImage(File file) async {
     try {
@@ -49,99 +61,122 @@ class FittingResultPage extends StatelessWidget {
     }
   }
 
-  Future<void> _saveFittingResult(BuildContext context) async {
+  Future<void> _saveToHistory() async {
     try {
       final _userId = FirebaseAuth.instance.currentUser?.uid;
       if (_userId == null) return;
 
       String fileName = 'fitting_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
-      // Storage 기본 경로 설정
-      final baseStorageRef = FirebaseStorage.instance
+      // fittingHistory 저장 로직
+      final historyStorageRef = FirebaseStorage.instance
           .ref()
           .child('users')
           .child(_userId)
           .child('children')
-          .child(childInfo['childId'])
-          .child('fittingResults')
-          .child('category');  // category 추가
+          .child(widget.childInfo['childId'])
+          .child('fittingHistory');
 
-      // Database에 저장할 데이터
       Map<String, dynamic> fittingData = {
         'date': DateTime.now().toString(),
         'timestamp': ServerValue.timestamp,
         'savedAt': DateTime.now().toString(),
       };
 
-      if (isOnepiece) {
-        // set 카테고리에 저장
-        final setStorageRef = baseStorageRef
-            .child('set')
-            .child(fileName);
+      if (widget.isOnepiece) {
+        final historyRef = historyStorageRef.child(fileName);
+        await historyRef.putFile(widget.topImageFile);
+        final historyUrl = await historyRef.getDownloadURL();
+        fittingData['onepieceUrl'] = historyUrl;
 
-        await setStorageRef.putFile(topImageFile);
-        final imageUrl = await setStorageRef.getDownloadURL();
-        fittingData['onepieceUrl'] = imageUrl;
-
-        // Database의 set 카테고리에 저장
+        // Database에 저장
         await FirebaseDatabase.instance
             .ref()
             .child('users')
             .child(_userId)
             .child('children')
-            .child(childInfo['childId'])
+            .child(widget.childInfo['childId'])
             .child('fittingHistory')
             .child('category')
             .child('set')
             .push()
             .set(fittingData);
       } else {
-        // top_bottom 카테고리에 저장
-        final topBottomRef = baseStorageRef.child('top_bottom');
-
-        if (topImageFile.path.isNotEmpty) {
-          final topStorageRef = topBottomRef.child('top_$fileName');
-          await topStorageRef.putFile(topImageFile);
-          final topImageUrl = await topStorageRef.getDownloadURL();
-          fittingData['topImageUrl'] = topImageUrl;
+        if (widget.topImageFile.path.isNotEmpty) {
+          final topFileName = 'top_$fileName';
+          final topHistoryRef = historyStorageRef.child(topFileName);
+          await topHistoryRef.putFile(widget.topImageFile);
+          final topUrl = await topHistoryRef.getDownloadURL();
+          fittingData['topImageUrl'] = topUrl;
         }
 
-        if (bottomImageFile.path.isNotEmpty) {
-          final bottomStorageRef = topBottomRef.child('bottom_$fileName');
-          await bottomStorageRef.putFile(bottomImageFile);
-          final bottomImageUrl = await bottomStorageRef.getDownloadURL();
-          fittingData['bottomImageUrl'] = bottomImageUrl;
+        if (widget.bottomImageFile.path.isNotEmpty) {
+          final bottomFileName = 'bottom_$fileName';
+          final bottomHistoryRef = historyStorageRef.child(bottomFileName);
+          await bottomHistoryRef.putFile(widget.bottomImageFile);
+          final bottomUrl = await bottomHistoryRef.getDownloadURL();
+          fittingData['bottomImageUrl'] = bottomUrl;
         }
 
-        // Database의 top_bottom 카테고리에 저장
+        // Database에 저장
         await FirebaseDatabase.instance
             .ref()
             .child('users')
             .child(_userId)
             .child('children')
-            .child(childInfo['childId'])
+            .child(widget.childInfo['childId'])
             .child('fittingHistory')
             .child('category')
             .child('top_bottom')
             .push()
             .set(fittingData);
       }
+    } catch (e) {
+      print('History 저장 오류: $e');
+    }
+  }
+
+  Future<void> _saveFittingResult(BuildContext context) async {
+    try {
+      final _userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+      String fileName = 'fitting_${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+      // fittingResults에만 저장
+      final resultStorageRef = FirebaseStorage.instance
+          .ref()
+          .child('users')
+          .child(_userId)
+          .child('children')
+          .child(widget.childInfo['childId'])
+          .child('fittingResults')
+          .child('category');
+
+      if (widget.isOnepiece) {
+        final setRef = resultStorageRef.child('set').child(fileName);
+        await setRef.putFile(widget.topImageFile);
+      } else {
+        if (widget.topImageFile.path.isNotEmpty) {
+          await resultStorageRef
+              .child('top_bottom')
+              .child('top_$fileName')
+              .putFile(widget.topImageFile);
+        }
+        if (widget.bottomImageFile.path.isNotEmpty) {
+          await resultStorageRef
+              .child('top_bottom')
+              .child('bottom_$fileName')
+              .putFile(widget.bottomImageFile);
+        }
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('피팅 결과가 저장되었습니다'),
-          duration: Duration(seconds: 2),
-        ),
+        SnackBar(content: Text('피팅 결과가 저장되었습니다')),
       );
-
       Navigator.pop(context);
     } catch (e) {
       print('저장 오류: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('저장 중 오류가 발생했습니다'),
-          duration: Duration(seconds: 2),
-        ),
+        SnackBar(content: Text('저장 중 오류가 발생했습니다')),
       );
     }
   }
@@ -187,24 +222,24 @@ class FittingResultPage extends StatelessWidget {
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: Colors.grey[300]!),
                     ),
-                    child: isOnepiece
+                    child: widget.isOnepiece
                         ? Image.file(
-                      topImageFile,
+                      widget.topImageFile,
                       fit: BoxFit.contain,
                     )
                         : Column(
                       children: [
-                        if (topImageFile.path.isNotEmpty)
+                        if (widget.topImageFile.path.isNotEmpty)
                           Expanded(
                             child: Image.file(
-                              topImageFile,
+                              widget.topImageFile,
                               fit: BoxFit.contain,
                             ),
                           ),
-                        if (bottomImageFile.path.isNotEmpty)
+                        if (widget.bottomImageFile.path.isNotEmpty)
                           Expanded(
                             child: Image.file(
-                              bottomImageFile,
+                              widget.bottomImageFile,
                               fit: BoxFit.contain,
                             ),
                           ),
@@ -217,7 +252,7 @@ class FittingResultPage extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        if (topImageFile.path.isNotEmpty)
+                        if (widget.topImageFile.path.isNotEmpty)
                           Container(
                             width: 60,
                             height: 60,
@@ -228,16 +263,16 @@ class FittingResultPage extends StatelessWidget {
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(8),
                               child: Image.file(
-                                topImageFile,
+                                widget.topImageFile,
                                 fit: BoxFit.cover,
                               ),
                             ),
                           ),
-                        if (!isOnepiece) ...[
+                        if (!widget.isOnepiece) ...[
                           SizedBox(width: 8),
                           Icon(Icons.add, color: Colors.grey, size: 20),
                           SizedBox(width: 8),
-                          if (bottomImageFile.path.isNotEmpty)
+                          if (widget.bottomImageFile.path.isNotEmpty)
                             Container(
                               width: 60,
                               height: 60,
@@ -248,7 +283,7 @@ class FittingResultPage extends StatelessWidget {
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
                                 child: Image.file(
-                                  bottomImageFile,
+                                  widget.bottomImageFile,
                                   fit: BoxFit.cover,
                                 ),
                               ),
@@ -279,9 +314,9 @@ class FittingResultPage extends StatelessWidget {
                                 .child('users')
                                 .child(FirebaseAuth.instance.currentUser?.uid ?? '')
                                 .child('children')
-                                .child(childInfo['childId'])
+                                .child(widget.childInfo['childId'])
                                 .child('clothing')
-                                .child(isOnepiece ? '한벌옷' : '상의')
+                                .child(widget.isOnepiece ? '한벌옷' : '상의')
                                 .onValue,
                             builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
                               if (!snapshot.hasData || snapshot.data?.snapshot.value == null) {
