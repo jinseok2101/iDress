@@ -154,19 +154,21 @@ class _HomeScreenState extends State<HomeScreen> {
                           alignment: Alignment.center,
                           child: Image.asset(
                             'assets/images/logo2.png',
-                            height: 100,
+                            height: 150,
                             fit: BoxFit.contain,
                           ),
                         ),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: IconButton(
-                            icon: const Icon(
-                              Icons.person_outline,
-                              size: 30,
-                              color: Colors.black87,
+                        Positioned(
+                          // 이미지의 위치를 아래로 내리기 위해 Positioned 사용
+                          right: 20,  // 오른쪽에 배치
+                          bottom: 100, // 화면 하단에서 30만큼 위로 배치
+                          child: GestureDetector(
+                            onTap: () => context.go('/mypage'),
+                            child: Image.asset(
+                              'assets/images/mypage.png',
+                              height: 40,  // 이미지 크기 조정
+                              width: 40,
                             ),
-                            onPressed: () => context.go('/mypage'),
                           ),
                         ),
                       ],
