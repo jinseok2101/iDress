@@ -7,6 +7,7 @@ import 'package:path/path.dart' as path;
 import 'package:uuid/uuid.dart';
 import 'fitting_in_closet_top.dart';
 import 'package:last3/screens/fitting_room/fittingroom/fitting_result_page.dart';
+import 'package:last3/screens/fitting_room/fittingroom/fitting_loading_page.dart';
 
 class FittingInClosetSet extends StatefulWidget {
   final String userId;
@@ -402,7 +403,7 @@ class _FittingInClosetSetState extends State<FittingInClosetSet> {
           ? Container(
         padding: EdgeInsets.all(16),
         child: ElevatedButton(
-          onPressed: () async {
+          onPressed: () {
             try {
               final selectedSet = widget.setClothes.firstWhere(
                     (set) => set['imageUrl'] == selectedSetId,
@@ -413,23 +414,23 @@ class _FittingInClosetSetState extends State<FittingInClosetSet> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => FittingResultPage(
+                    builder: (context) => FittingLoadingPage(
                       childInfo: {
                         'childId': widget.childId,
                         'userId': widget.userId,
                       },
-                      topImage: selectedSet['imageUrl'],  // URL 문자열
+                      topImage: selectedSet['imageUrl'],
                       bottomImage: '',
                       isOnepiece: true,
-                      isFromCloset: true,  // 옷장에서 왔으므로 true
+                      isFromCloset: true,
                     ),
                   ),
                 );
               }
             } catch (e) {
-              print('피팅 결과 페이지 이동 오류: $e');
+              print('피팅 로딩 페이지 이동 오류: $e');
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('피팅 결과를 불러오는 중 오류가 발생했습니다')),
+                const SnackBar(content: Text('피팅 준비 중 오류가 발생했습니다')),
               );
             }
           },
