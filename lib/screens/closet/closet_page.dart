@@ -764,6 +764,11 @@ class _ClosetPageState extends State<ClosetPage> {
                 context,
                 MaterialPageRoute(
                   builder: (context) => FittingResultPage(
+                    childInfo: {  // childInfo 추가
+                      'childId': _childId,
+                      'childName': _childName,
+                      'childImage': _childProfileUrl,
+                    },
                     topImageFile: File(''),
                     bottomImageFile: File(''),
                     isOnepiece: false,

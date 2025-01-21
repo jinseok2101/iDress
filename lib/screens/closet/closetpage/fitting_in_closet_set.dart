@@ -414,6 +414,10 @@ class _FittingInClosetSetState extends State<FittingInClosetSet> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => FittingResultPage(
+                      childInfo: {  // childInfo 추가
+                        'childId': widget.childId,
+                        'userId': widget.userId,
+                      },
                       topImageFile: File(selectedSet['imageUrl']),
                       bottomImageFile: File(''),
                       isOnepiece: true,  // 한벌옷임을 표시

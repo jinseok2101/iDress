@@ -451,6 +451,10 @@ class _FittingInClosetTopState extends State<FittingInClosetTop> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => FittingResultPage(
+                          childInfo: {  // childInfo 추가
+                            'childId': widget.childId,
+                            'userId': widget.userId,
+                          },
                           topImageFile: File(selectedTop['imageUrl']),
                           bottomImageFile: File(''),
                           isOnepiece: false,
@@ -471,6 +475,10 @@ class _FittingInClosetTopState extends State<FittingInClosetTop> {
                     context,
                     MaterialPageRoute(
                       builder: (context) => FittingResultPage(
+                        childInfo: {  // childInfo 추가
+                          'childId': widget.childId,
+                          'userId': widget.userId,
+                        },
                         topImageFile: File(selectedTop['imageUrl']),
                         bottomImageFile: File(''),
                         isOnepiece: false,

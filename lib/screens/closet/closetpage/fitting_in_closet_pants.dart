@@ -197,6 +197,10 @@ class _FittingInClosetPantsState extends State<FittingInClosetPants> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => FittingResultPage(
+                      childInfo: {  // childInfo 추가
+                        'childId': widget.childId,
+                        'userId': widget.userId,
+                      },
                       topImageFile: File(widget.selectedTopImageUrl),
                       bottomImageFile: File(''),  // 빈 파일 전달
                     ),
@@ -385,8 +389,13 @@ class _FittingInClosetPantsState extends State<FittingInClosetPants> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => FittingResultPage(
+                      childInfo: {  // childInfo 추가
+                        'childId': widget.childId,
+                        'userId': widget.userId,
+                      },
                       topImageFile: File(widget.selectedTopImageUrl),
                       bottomImageFile: File(selectedPants['imageUrl']),
+                      isOnepiece: false,
                     ),
                   ),
                 );

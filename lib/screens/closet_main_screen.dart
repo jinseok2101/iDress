@@ -26,44 +26,51 @@ class _MainScreenState extends State<MainScreen> {
   void _initializeScreens() {
     if (widget.childInfo == null) {
       _screens = [
-        const Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.warning_amber_rounded,
-                size: 48,
-                color: Colors.grey,
-              ),
-              SizedBox(height: 16),
-              Text(
-                '자녀 정보가 없습니다.\n프로필에서 자녀를 선택해주세요.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                ),
-              ),
-            ],
-          ),
-        ),
+        _buildNoChildInfoScreen(),
         const HomeScreen(),
-        const FittingRoomPage(),
+        _buildNoChildInfoScreen(),
       ];
     } else {
       _screens = [
         ClosetPage(childInfo: widget.childInfo!),
         const HomeScreen(),
-        FittingRoomPage(fullBodyImageUrl: widget.childInfo!['fullBodyImageUrl']),
+        FittingRoomPage(
+          childInfo: widget.childInfo!,
+          fullBodyImageUrl: widget.childInfo!['fullBodyImageUrl'],
+        ),
       ];
     }
+  }
+
+  Widget _buildNoChildInfoScreen() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.warning_amber_rounded,
+            size: 48,
+            color: Colors.grey,
+          ),
+          SizedBox(height: 16),
+          Text(
+            '자녀 정보가 없습니다.\n프로필에서 자녀를 선택해주세요.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _onItemTapped(int index) {
     if (index == 1) {
       context.go('/home');
     } else {
-      if (widget.childInfo == null && index == 0) {
+      if (widget.childInfo == null && (index == 0 || index == 2)) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('프로필에서 자녀를 먼저 선택해주세요'),
