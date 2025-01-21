@@ -7,6 +7,7 @@ import 'package:path/path.dart' as path;
 import 'package:uuid/uuid.dart';
 import 'fitting_in_closet_top.dart';
 import 'package:last3/screens/fitting_room/fittingroom/fitting_result_page.dart';
+import 'package:last3/screens/fitting_room/fittingroom/fitting_loading_page.dart';
 
 class FittingInClosetSet extends StatefulWidget {
   final String userId;
@@ -414,13 +415,14 @@ class _FittingInClosetSetState extends State<FittingInClosetSet> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => FittingResultPage(
-                      childInfo: {  // childInfo 추가
+                      childInfo: {
                         'childId': widget.childId,
                         'userId': widget.userId,
                       },
-                      topImageFile: File(selectedSet['imageUrl']),
-                      bottomImageFile: File(''),
-                      isOnepiece: true,  // 한벌옷임을 표시
+                      topImage: selectedSet['imageUrl'],  // URL 문자열
+                      bottomImage: '',
+                      isOnepiece: true,
+                      isFromCloset: true,  // 옷장에서 왔으므로 true
                     ),
                   ),
                 );

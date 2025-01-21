@@ -6,19 +6,22 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
+import 'package:http/http.dart' as http;
 
 class FittingResultPage extends StatefulWidget {
   final Map<String, dynamic> childInfo;
-  final File topImageFile;
-  final File bottomImageFile;
+  final dynamic topImage;  // File 또는 String을 받을 수 있도록
+  final dynamic bottomImage;  // File 또는 String을 받을 수 있도록
   final bool isOnepiece;
+  final bool isFromCloset;  // 옷장에서 왔는지 여부
 
   const FittingResultPage({
     Key? key,
     required this.childInfo,
-    required this.topImageFile,
-    required this.bottomImageFile,
+    required this.topImage,
+    required this.bottomImage,
     this.isOnepiece = false,
+    this.isFromCloset = false,  // 기본값 false
   }) : super(key: key);
 
   @override
@@ -29,7 +32,6 @@ class _FittingResultPageState extends State<FittingResultPage> {
   @override
   void initState() {
     super.initState();
-    // 피팅 결과 생성 즉시 fittingHistory에 자동 저장
     _saveToHistory();
   }
 
@@ -61,6 +63,22 @@ class _FittingResultPageState extends State<FittingResultPage> {
     }
   }
 
+  Widget _buildImage(dynamic image) {
+    if (image is File) {
+      return Image.file(
+        image,
+        fit: BoxFit.contain,
+      );
+    } else if (image is String && image.isNotEmpty) {
+      return Image.network(
+        image,
+        fit: BoxFit.contain,
+      );
+    } else {
+      return Container();  // 빈 이미지일 경우
+    }
+  }
+
   Future<void> _saveToHistory() async {
     try {
       final _userId = FirebaseAuth.instance.currentUser?.uid;
@@ -68,7 +86,7 @@ class _FittingResultPageState extends State<FittingResultPage> {
 
       String fileName = 'fitting_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
-      // fittingHistory 저장 로직
+      // fittingHistory Storage 참조
       final historyStorageRef = FirebaseStorage.instance
           .ref()
           .child('users')
@@ -84,10 +102,23 @@ class _FittingResultPageState extends State<FittingResultPage> {
       };
 
       if (widget.isOnepiece) {
-        final historyRef = historyStorageRef.child(fileName);
-        await historyRef.putFile(widget.topImageFile);
-        final historyUrl = await historyRef.getDownloadURL();
-        fittingData['onepieceUrl'] = historyUrl;
+        if (widget.isFromCloset) {
+          // 옷장에서 온 경우: Storage에 복사
+          final originalUrl = widget.topImage as String;
+          final response = await http.get(Uri.parse(originalUrl));
+          final imageData = response.bodyBytes;
+
+          final newRef = historyStorageRef.child(fileName);
+          await newRef.putData(imageData);
+          final newUrl = await newRef.getDownloadURL();
+          fittingData['onepieceUrl'] = newUrl;
+        } else {
+          // 피팅룸에서 온 경우
+          final newRef = historyStorageRef.child(fileName);
+          await newRef.putFile(widget.topImage as File);
+          final newUrl = await newRef.getDownloadURL();
+          fittingData['onepieceUrl'] = newUrl;
+        }
 
         // Database에 저장
         await FirebaseDatabase.instance
@@ -101,21 +132,46 @@ class _FittingResultPageState extends State<FittingResultPage> {
             .child('set')
             .push()
             .set(fittingData);
+
       } else {
-        if (widget.topImageFile.path.isNotEmpty) {
-          final topFileName = 'top_$fileName';
-          final topHistoryRef = historyStorageRef.child(topFileName);
-          await topHistoryRef.putFile(widget.topImageFile);
-          final topUrl = await topHistoryRef.getDownloadURL();
-          fittingData['topImageUrl'] = topUrl;
+        if (widget.topImage != null && widget.topImage != '') {
+          if (widget.isFromCloset) {
+            // 상의 - 옷장에서 온 경우
+            final originalUrl = widget.topImage as String;
+            final response = await http.get(Uri.parse(originalUrl));
+            final imageData = response.bodyBytes;
+
+            final newRef = historyStorageRef.child('top_$fileName');
+            await newRef.putData(imageData);
+            final newUrl = await newRef.getDownloadURL();
+            fittingData['topImageUrl'] = newUrl;
+          } else {
+            // 상의 - 피팅룸에서 온 경우
+            final newRef = historyStorageRef.child('top_$fileName');
+            await newRef.putFile(widget.topImage as File);
+            final newUrl = await newRef.getDownloadURL();
+            fittingData['topImageUrl'] = newUrl;
+          }
         }
 
-        if (widget.bottomImageFile.path.isNotEmpty) {
-          final bottomFileName = 'bottom_$fileName';
-          final bottomHistoryRef = historyStorageRef.child(bottomFileName);
-          await bottomHistoryRef.putFile(widget.bottomImageFile);
-          final bottomUrl = await bottomHistoryRef.getDownloadURL();
-          fittingData['bottomImageUrl'] = bottomUrl;
+        if (widget.bottomImage != null && widget.bottomImage != '') {
+          if (widget.isFromCloset) {
+            // 하의 - 옷장에서 온 경우
+            final originalUrl = widget.bottomImage as String;
+            final response = await http.get(Uri.parse(originalUrl));
+            final imageData = response.bodyBytes;
+
+            final newRef = historyStorageRef.child('bottom_$fileName');
+            await newRef.putData(imageData);
+            final newUrl = await newRef.getDownloadURL();
+            fittingData['bottomImageUrl'] = newUrl;
+          } else {
+            // 하의 - 피팅룸에서 온 경우
+            final newRef = historyStorageRef.child('bottom_$fileName');
+            await newRef.putFile(widget.bottomImage as File);
+            final newUrl = await newRef.getDownloadURL();
+            fittingData['bottomImageUrl'] = newUrl;
+          }
         }
 
         // Database에 저장
@@ -141,7 +197,7 @@ class _FittingResultPageState extends State<FittingResultPage> {
       final _userId = FirebaseAuth.instance.currentUser?.uid ?? '';
       String fileName = 'fitting_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
-      // fittingResults에만 저장
+      // fittingResults Storage 참조
       final resultStorageRef = FirebaseStorage.instance
           .ref()
           .child('users')
@@ -152,27 +208,74 @@ class _FittingResultPageState extends State<FittingResultPage> {
           .child('category');
 
       if (widget.isOnepiece) {
-        final setRef = resultStorageRef.child('set').child(fileName);
-        await setRef.putFile(widget.topImageFile);
-      } else {
-        if (widget.topImageFile.path.isNotEmpty) {
-          await resultStorageRef
-              .child('top_bottom')
-              .child('top_$fileName')
-              .putFile(widget.topImageFile);
+        if (widget.isFromCloset) {
+          // 옷장에서 온 경우: Storage에 복사
+          final originalUrl = widget.topImage as String;
+          final response = await http.get(Uri.parse(originalUrl));
+          final imageData = response.bodyBytes;
+
+          final newRef = resultStorageRef.child('set').child(fileName);
+          await newRef.putData(imageData);
+        } else {
+          // 피팅룸에서 온 경우
+          final newRef = resultStorageRef.child('set').child(fileName);
+          await newRef.putFile(widget.topImage as File);
         }
-        if (widget.bottomImageFile.path.isNotEmpty) {
-          await resultStorageRef
-              .child('top_bottom')
-              .child('bottom_$fileName')
-              .putFile(widget.bottomImageFile);
+      } else {
+        if (widget.topImage != null && widget.topImage != '') {
+          if (widget.isFromCloset) {
+            // 상의 - 옷장에서 온 경우
+            final originalUrl = widget.topImage as String;
+            final response = await http.get(Uri.parse(originalUrl));
+            final imageData = response.bodyBytes;
+
+            await resultStorageRef
+                .child('top_bottom')
+                .child('top_$fileName')
+                .putData(imageData);
+          } else {
+            // 상의 - 피팅룸에서 온 경우
+            await resultStorageRef
+                .child('top_bottom')
+                .child('top_$fileName')
+                .putFile(widget.topImage as File);
+          }
+        }
+
+        if (widget.bottomImage != null && widget.bottomImage != '') {
+          if (widget.isFromCloset) {
+            // 하의 - 옷장에서 온 경우
+            final originalUrl = widget.bottomImage as String;
+            final response = await http.get(Uri.parse(originalUrl));
+            final imageData = response.bodyBytes;
+
+            await resultStorageRef
+                .child('top_bottom')
+                .child('bottom_$fileName')
+                .putData(imageData);
+          } else {
+            // 하의 - 피팅룸에서 온 경우
+            await resultStorageRef
+                .child('top_bottom')
+                .child('bottom_$fileName')
+                .putFile(widget.bottomImage as File);
+          }
         }
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('피팅 결과가 저장되었습니다')),
       );
-      Navigator.pop(context);
+
+      // 네비게이션 로직 수정
+      if (widget.isFromCloset) {
+        // 옷장에서 왔을 경우: 모든 스택을 지우고 ClosetPage로 이동
+        Navigator.popUntil(context, (route) => route.isFirst);
+      } else {
+        // 피팅룸에서 왔을 경우: 이전 페이지로 이동
+        Navigator.pop(context);
+      }
+
     } catch (e) {
       print('저장 오류: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -223,25 +326,16 @@ class _FittingResultPageState extends State<FittingResultPage> {
                       border: Border.all(color: Colors.grey[300]!),
                     ),
                     child: widget.isOnepiece
-                        ? Image.file(
-                      widget.topImageFile,
-                      fit: BoxFit.contain,
-                    )
+                        ? _buildImage(widget.topImage)
                         : Column(
                       children: [
-                        if (widget.topImageFile.path.isNotEmpty)
+                        if (widget.topImage != null)
                           Expanded(
-                            child: Image.file(
-                              widget.topImageFile,
-                              fit: BoxFit.contain,
-                            ),
+                            child: _buildImage(widget.topImage),
                           ),
-                        if (widget.bottomImageFile.path.isNotEmpty)
+                        if (widget.bottomImage != null)
                           Expanded(
-                            child: Image.file(
-                              widget.bottomImageFile,
-                              fit: BoxFit.contain,
-                            ),
+                            child: _buildImage(widget.bottomImage),
                           ),
                       ],
                     ),
@@ -252,7 +346,7 @@ class _FittingResultPageState extends State<FittingResultPage> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        if (widget.topImageFile.path.isNotEmpty)
+                        if (widget.topImage != null)
                           Container(
                             width: 60,
                             height: 60,
@@ -262,17 +356,14 @@ class _FittingResultPageState extends State<FittingResultPage> {
                             ),
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(8),
-                              child: Image.file(
-                                widget.topImageFile,
-                                fit: BoxFit.cover,
-                              ),
+                              child: _buildImage(widget.topImage),
                             ),
                           ),
                         if (!widget.isOnepiece) ...[
                           SizedBox(width: 8),
                           Icon(Icons.add, color: Colors.grey, size: 20),
                           SizedBox(width: 8),
-                          if (widget.bottomImageFile.path.isNotEmpty)
+                          if (widget.bottomImage != null)
                             Container(
                               width: 60,
                               height: 60,
@@ -282,10 +373,7 @@ class _FittingResultPageState extends State<FittingResultPage> {
                               ),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
-                                child: Image.file(
-                                  widget.bottomImageFile,
-                                  fit: BoxFit.cover,
-                                ),
+                                child: _buildImage(widget.bottomImage),
                               ),
                             ),
                         ],

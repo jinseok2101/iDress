@@ -6,6 +6,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
 import 'package:uuid/uuid.dart';
 import 'package:last3/screens/fitting_room/fittingroom/fitting_result_page.dart';
+import 'package:last3/screens/fitting_room/fittingroom/fitting_loading_page.dart';
+
 
 class FittingInClosetPants extends StatefulWidget {
   final String userId;
@@ -110,7 +112,7 @@ class _FittingInClosetPantsState extends State<FittingInClosetPants> {
               .child('children')
               .child(widget.childId)
               .child('clothing')
-              .child('하의')  // 카테고리 지정
+              .child('하의')
               .child(fileName);
 
           final UploadTask uploadTask = storageRef.putFile(
@@ -136,7 +138,7 @@ class _FittingInClosetPantsState extends State<FittingInClosetPants> {
               .child('children')
               .child(widget.childId)
               .child('clothing')
-              .child('하의');  // 카테고리 지정
+              .child('하의');
 
           await databaseRef.push().set({
             'imageUrl': downloadUrl,
@@ -192,17 +194,18 @@ class _FittingInClosetPantsState extends State<FittingInClosetPants> {
             ),
             child: TextButton(
               onPressed: () {
-                // 건너뛰기를 눌렀을 때 빈 이미지나 기본 이미지로 결과 페이지로 이동
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => FittingResultPage(
-                      childInfo: {  // childInfo 추가
+                    builder: (context) => FittingLoadingPage(
+                      childInfo: {
                         'childId': widget.childId,
                         'userId': widget.userId,
                       },
-                      topImageFile: File(widget.selectedTopImageUrl),
-                      bottomImageFile: File(''),  // 빈 파일 전달
+                      topImage: widget.selectedTopImageUrl,
+                      bottomImage: '',
+                      isOnepiece: false,
+                      isFromCloset: true,
                     ),
                   ),
                 );
@@ -377,33 +380,27 @@ class _FittingInClosetPantsState extends State<FittingInClosetPants> {
           ? Container(
         padding: EdgeInsets.all(16),
         child: ElevatedButton(
-          onPressed: () async {
-            try {
-              final selectedPants = widget.pantsClothes.firstWhere(
-                    (pants) => pants['imageUrl'] == selectedPantsId,
-                orElse: () => {},
-              );
+          onPressed: () {
+            final selectedPants = widget.pantsClothes.firstWhere(
+                  (pants) => pants['imageUrl'] == selectedPantsId,
+              orElse: () => {},
+            );
 
-              if (selectedPants.isNotEmpty) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => FittingResultPage(
-                      childInfo: {  // childInfo 추가
-                        'childId': widget.childId,
-                        'userId': widget.userId,
-                      },
-                      topImageFile: File(widget.selectedTopImageUrl),
-                      bottomImageFile: File(selectedPants['imageUrl']),
-                      isOnepiece: false,
-                    ),
+            if (selectedPants.isNotEmpty) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => FittingLoadingPage(
+                    childInfo: {
+                      'childId': widget.childId,
+                      'userId': widget.userId,
+                    },
+                    topImage: widget.selectedTopImageUrl,
+                    bottomImage: selectedPants['imageUrl'],
+                    isOnepiece: false,
+                    isFromCloset: true,
                   ),
-                );
-              }
-            } catch (e) {
-              print('피팅 결과 페이지 이동 오류: $e');
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('피팅 결과를 불러오는 중 오류가 발생했습니다')),
+                ),
               );
             }
           },

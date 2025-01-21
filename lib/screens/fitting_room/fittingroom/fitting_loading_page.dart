@@ -5,16 +5,18 @@ import 'fitting_result_page.dart';
 
 class FittingLoadingPage extends StatefulWidget {
   final Map<String, dynamic> childInfo;
-  final File? topImage;
-  final File? bottomImage;
-  final bool isOnepiece;  // 추가
+  final dynamic topImage;  // File 또는 String을 받을 수 있도록 dynamic으로 변경
+  final dynamic bottomImage;  // File 또는 String을 받을 수 있도록 dynamic으로 변경
+  final bool isOnepiece;
+  final bool isFromCloset;
 
   const FittingLoadingPage({
     Key? key,
     required this.childInfo,
     this.topImage,
     this.bottomImage,
-    required this.isOnepiece,  // 추가
+    required this.isOnepiece,
+    required this.isFromCloset,
   }) : super(key: key);
 
   @override
@@ -31,9 +33,10 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
         MaterialPageRoute(
           builder: (context) => FittingResultPage(
             childInfo: widget.childInfo,
-            topImageFile: widget.topImage ?? File(''),
-            bottomImageFile: widget.bottomImage ?? File(''),
-            isOnepiece: widget.isOnepiece,  // isOnepiece 값 전달
+            topImage: widget.topImage ?? (widget.isFromCloset ? '' : File('')),
+            bottomImage: widget.bottomImage ?? (widget.isFromCloset ? '' : File('')),
+            isOnepiece: widget.isOnepiece,
+            isFromCloset: widget.isFromCloset,
           ),
         ),
       );
@@ -53,7 +56,7 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
             Icon(Icons.checkroom, size: 40, color: Colors.black),
             SizedBox(height: 8),
             Text(
-              '피팅룸',
+              widget.isFromCloset ? '옷장 피팅' : '피팅룸',  // 출처에 따라 다른 텍스트 표시
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,

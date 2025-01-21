@@ -6,6 +6,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'fittingroom/fitting_loading_page.dart';
 import 'fittingroom/fitting_history_page.dart';
+
 class FittingRoomPage extends StatefulWidget {
   final Map<String, dynamic> childInfo;
   final String? fullBodyImageUrl;
@@ -422,13 +423,13 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) =>
-                                FittingLoadingPage(
-                                  childInfo: widget.childInfo,
-                                  topImage: topImage,
-                                  bottomImage: bottomImage,
-                                  isOnepiece: false, // top_bottom으로 저장
-                                ),
+                            builder: (context) => FittingLoadingPage(
+                              childInfo: widget.childInfo,
+                              topImage: topImage,
+                              bottomImage: bottomImage,
+                              isOnepiece: false,
+                              isFromCloset: false,  // 추가: 피팅룸에서 왔음을 표시
+                            ),
                           ),
                         );
                       },
@@ -443,13 +444,13 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) =>
-                                FittingLoadingPage(
-                                  childInfo: widget.childInfo,
-                                  topImage: topImage,
-                                  bottomImage: bottomImage,
-                                  isOnepiece: true, // set으로 저장
-                                ),
+                            builder: (context) => FittingLoadingPage(
+                              childInfo: widget.childInfo,
+                              topImage: topImage,
+                              bottomImage: bottomImage,
+                              isOnepiece: true,
+                              isFromCloset: false,  // 추가: 피팅룸에서 왔음을 표시
+                            ),
                           ),
                         );
                       },

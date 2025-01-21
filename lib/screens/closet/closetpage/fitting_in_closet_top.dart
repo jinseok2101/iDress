@@ -7,6 +7,7 @@ import 'package:path/path.dart' as path;
 import 'package:uuid/uuid.dart';
 import 'fitting_in_closet_pants.dart';
 import 'package:last3/screens/fitting_room/fittingroom/fitting_result_page.dart';
+import 'package:last3/screens/fitting_room/fittingroom/fitting_loading_page.dart';
 
 class FittingInClosetTop extends StatefulWidget {
   final String userId;
@@ -222,8 +223,21 @@ class _FittingInClosetTopState extends State<FittingInClosetTop> {
                       );
                     }
                   } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('등록된 하의가 없습니다')),
+                    // 하의가 없는 경우 바로 로딩 페이지로 이동
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => FittingLoadingPage(
+                          childInfo: {
+                            'childId': widget.childId,
+                            'userId': widget.userId,
+                          },
+                          topImage: selectedTopId ?? '',
+                          bottomImage: '',
+                          isOnepiece: false,
+                          isFromCloset: true,
+                        ),
+                      ),
                     );
                   }
                 }
@@ -451,13 +465,14 @@ class _FittingInClosetTopState extends State<FittingInClosetTop> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => FittingResultPage(
-                          childInfo: {  // childInfo 추가
+                          childInfo: {
                             'childId': widget.childId,
                             'userId': widget.userId,
                           },
-                          topImageFile: File(selectedTop['imageUrl']),
-                          bottomImageFile: File(''),
+                          topImage: selectedTop['imageUrl'],  // URL 문자열 전달
+                          bottomImage: '',  // 빈 문자열 전달
                           isOnepiece: false,
+                          isFromCloset: true,  // 옷장에서 왔음을 표시
                         ),
                       ),
                     );
@@ -475,13 +490,14 @@ class _FittingInClosetTopState extends State<FittingInClosetTop> {
                     context,
                     MaterialPageRoute(
                       builder: (context) => FittingResultPage(
-                        childInfo: {  // childInfo 추가
+                        childInfo: {
                           'childId': widget.childId,
                           'userId': widget.userId,
                         },
-                        topImageFile: File(selectedTop['imageUrl']),
-                        bottomImageFile: File(''),
+                        topImage: selectedTop['imageUrl'],  // URL 문자열 전달
+                        bottomImage: '',  // 빈 문자열 전달
                         isOnepiece: false,
+                        isFromCloset: true,  // 옷장에서 왔음을 표시
                       ),
                     ),
                   );

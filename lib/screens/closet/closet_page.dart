@@ -8,7 +8,7 @@ import 'closetpage/clothing_detail_page.dart';
 import 'closetpage/fitting_in_closet_set.dart';
 import 'closetpage/fitting_in_closet_pants.dart';
 import 'package:last3/screens/fitting_room/fittingroom/fitting_result_page.dart';
-import 'dart:io';
+import 'package:last3/screens/fitting_room/fittingroom/fitting_loading_page.dart';
 
 class ClosetPage extends StatefulWidget {
   final Map<String, dynamic> childInfo;
@@ -759,19 +759,20 @@ class _ClosetPageState extends State<ClosetPage> {
             }
 
             // 모든 의류가 없는 경우 결과 페이지로 이동
-            if (mounted) {
+            iif (mounted) {
               Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (context) => FittingResultPage(
-                    childInfo: {  // childInfo 추가
+                    childInfo: {
                       'childId': _childId,
                       'childName': _childName,
                       'childImage': _childProfileUrl,
                     },
-                    topImageFile: File(''),
-                    bottomImageFile: File(''),
+                    topImage: '',  // topImageFile 대신 topImage
+                    bottomImage: '',  // bottomImageFile 대신 bottomImage
                     isOnepiece: false,
+                    isFromCloset: true,  // 옷장에서 왔음을 표시
                   ),
                 ),
               );
