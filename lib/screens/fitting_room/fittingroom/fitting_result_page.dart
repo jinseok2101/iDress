@@ -68,14 +68,29 @@ class _FittingResultPageState extends State<FittingResultPage> {
       return Image.file(
         image,
         fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          // 이미지 로드 실패시 빈 컨테이너 반환
+          return Container(
+            color: Colors.white,  // 또는 원하는 배경색
+          );
+        },
       );
     } else if (image is String && image.isNotEmpty) {
       return Image.network(
         image,
         fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          // 이미지 로드 실패시 빈 컨테이너 반환
+          return Container(
+            color: Colors.white,  // 또는 원하는 배경색
+          );
+        },
       );
     } else {
-      return Container();  // 빈 이미지일 경우
+      // 이미지가 없는 경우 빈 컨테이너 반환
+      return Container(
+        color: Colors.white,  // 또는 원하는 배경색
+      );
     }
   }
 
@@ -326,14 +341,16 @@ class _FittingResultPageState extends State<FittingResultPage> {
                       border: Border.all(color: Colors.grey[300]!),
                     ),
                     child: widget.isOnepiece
-                        ? _buildImage(widget.topImage)
+                        ? _buildImage(widget.topImage)  // 원피스인 경우
                         : Column(
                       children: [
-                        if (widget.topImage != null)
+                        // 상의 이미지가 있을 때만 표시
+                        if (widget.topImage != null && widget.topImage != '')
                           Expanded(
                             child: _buildImage(widget.topImage),
                           ),
-                        if (widget.bottomImage != null)
+                        // 하의 이미지가 있을 때만 표시
+                        if (widget.bottomImage != null && widget.bottomImage != '')
                           Expanded(
                             child: _buildImage(widget.bottomImage),
                           ),
