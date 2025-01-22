@@ -28,6 +28,7 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
   final FirebaseStorage _storage = FirebaseStorage.instance;
   final String _userId = FirebaseAuth.instance.currentUser?.uid ?? '';
   bool _isUploading = false;
+  String selectedOption = '상의'; // 콤보박스 기본값
 
   DatabaseReference get _clothingRef =>
       FirebaseDatabase.instance
@@ -49,6 +50,15 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
 
   Future<void> _pickImage(String type) async {
     try {
+      // 이미 이미지가 있고, 단일 이미지 옵션일 경우 더 이상 업로드 불가
+      if ((topImage != null || bottomImage != null) &&
+          (selectedOption == '상의' || selectedOption == '하의' || selectedOption == '한벌옷')) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('이미 이미지가 선택되었습니다')),
+        );
+        return;
+      }
+
       final XFile? pickedFile = await _picker.pickImage(
         source: ImageSource.gallery,
         maxWidth: 1024,
@@ -58,10 +68,26 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
 
       if (pickedFile != null) {
         setState(() {
-          if (type == 'top') {
-            topImage = File(pickedFile.path);
-          } else {
-            bottomImage = File(pickedFile.path);
+          switch (selectedOption) {
+            case '상의':
+              topImage = File(pickedFile.path);
+              bottomImage = null;
+              break;
+            case '하의':
+              topImage = null;
+              bottomImage = File(pickedFile.path);
+              break;
+            case '상의+하의':
+              if (topImage == null) {
+                topImage = File(pickedFile.path);
+              } else if (bottomImage == null) {
+                bottomImage = File(pickedFile.path);
+              }
+              break;
+            case '한벌옷':
+              topImage = File(pickedFile.path);
+              bottomImage = null;
+              break;
           }
         });
       }
@@ -76,306 +102,333 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         title: const Text(
-          '피팅룸',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 25,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        actions: [
-          TextButton.icon(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => FittingHistoryPage(childInfo: widget.childInfo),
-                ),
-              );
-            },
-            icon: Icon(Icons.history, color: Colors.grey[600]),
-            label: Text(
-              '기록보기',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 16,
-              ),
-            ),
-          ),
-          SizedBox(width: 8),
-        ],
-      ),
-      body: Column(
-        children: [
-          // 메인 이미지와 선택된 옷 영역
-          Expanded(
+        '피팅룸',
+        style: TextStyle(
+        color: Colors.black,
+        fontSize: 25,
+        fontWeight: FontWeight.bold,
+    ),
+    ),
+    actions: [
+    TextButton.icon(
+    onPressed: () {
+    Navigator.push(
+    context,
+    MaterialPageRoute(
+    builder: (context) => FittingHistoryPage(childInfo: widget.childInfo),
+    ),
+    );
+    },
+    icon: Icon(Icons.history, color: Colors.grey[600]),
+    label: Text(
+    '기록보기',
+    style: TextStyle(
+    color: Colors.grey[600],
+    fontSize: 16,
+    ),
+    ),
+    ),
+    SizedBox(width: 8),
+    ],
+    ),
+    body: Column(
+    children: [
+    Expanded(
+    child: Container(
+    margin: const EdgeInsets.all(16),
+    child: Row(
+      children: [
+        // 아이 전신 사진
+        Expanded(
+          flex: 4,
+          child: AspectRatio(
+            aspectRatio: 1/2,  // 세로로 긴 1:2 비율 설정
             child: Container(
-              margin: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  // 아이 전신 사진
-                  Expanded(
-                    flex: 1,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey[300]!),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: widget.fullBodyImageUrl != null
-                            ? Image.network(
-                          widget.fullBodyImageUrl!,
-                          fit: BoxFit.cover,
-                        )
-                            : Container(
-                          color: Colors.grey[200],
-                          child: Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.add_photo_alternate,
-                                    size: 50, color: Colors.grey),
-                                SizedBox(height: 8),
-                                Text(
-                                  '전신 사진을 등록해주세요',
-                                  style: TextStyle(color: Colors.grey),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 16),
-                  // 선택된 옷 이미지들
-                  Expanded(
-                    flex: 1,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey[300]!),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: widget.fullBodyImageUrl != null
+                    ? Image.network(
+                  widget.fullBodyImageUrl!,
+                  fit: BoxFit.contain,
+                )
+                    : Container(
+                  color: Colors.grey[200],
+                  child: Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // 상의 이미지
-                        if (topImage != null)
-                          Expanded(
-                            child: Stack(
-                              children: [
-                                Container(
-                                  margin: EdgeInsets.only(bottom: 8),
-                                  decoration: BoxDecoration(
-                                    border: Border.all(
-                                        color: Colors.grey[300]!),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Image.file(
-                                      topImage!,
-                                      fit: BoxFit.contain,
-                                      width: double.infinity,
-                                      height: double.infinity,
-                                    ),
-                                  ),
-                                ),
-                                Positioned(
-                                  top: 8,
-                                  right: 8,
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        topImage = null;
-                                      });
-                                    },
-                                    child: Container(
-                                      padding: EdgeInsets.all(4),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: Colors
-                                            .grey[300]!),
-                                      ),
-                                      child: Icon(
-                                        Icons.close,
-                                        size: 20,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        else
-                          Expanded(
-                            child: Container(
-                              margin: EdgeInsets.only(bottom: 8),
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.grey[300]!),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Center(
-                                child: Icon(Icons.add_photo_alternate,
-                                    color: Colors.grey),
-                              ),
-                            ),
-                          ),
-                        // 하의 이미지
-                        if (bottomImage != null)
-                          Expanded(
-                            child: Stack(
-                              children: [
-                                Container(
-                                  decoration: BoxDecoration(
-                                    border: Border.all(
-                                        color: Colors.grey[300]!),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Image.file(
-                                      bottomImage!,
-                                      fit: BoxFit.contain,
-                                      width: double.infinity,
-                                      height: double.infinity,
-                                    ),
-                                  ),
-                                ),
-                                Positioned(
-                                  top: 8,
-                                  right: 8,
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        bottomImage = null;
-                                      });
-                                    },
-                                    child: Container(
-                                      padding: EdgeInsets.all(4),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: Colors
-                                            .grey[300]!),
-                                      ),
-                                      child: Icon(
-                                        Icons.close,
-                                        size: 20,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        else
-                          Expanded(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.grey[300]!),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Center(
-                                child: Icon(Icons.add_photo_alternate,
-                                    color: Colors.grey),
-                              ),
-                            ),
-                          ),
+                        Icon(Icons.add_photo_alternate,
+                            size: 50, color: Colors.grey),
+                        SizedBox(height: 8),
+                        Text(
+                          '전신 사진을 등록해주세요',
+                          style: TextStyle(color: Colors.grey),
+                        ),
                       ],
                     ),
                   ),
-                ],
+                ),
               ),
             ),
           ),
-
-          // 하단 액션 버튼들
-          Container(
-            padding: EdgeInsets.only(left: 16, right: 16, bottom: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildActionButton(
-                  icon: Icons.add_photo_alternate,
-                  label: '상의',
-                  image: topImage,
-                  onTap: () => _pickImage('top'),
-                ),
-                _buildFittingButton(),
-                _buildActionButton(
-                  icon: Icons.add_photo_alternate,
-                  label: '하의',
-                  image: bottomImage,
-                  onTap: () => _pickImage('bottom'),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-    File? image,
-  }) {
-    return Container(
-      width: 80,
-      height: 80,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[300]!),
-      ),
-      child: InkWell(
-        onTap: _isUploading ? null : onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Stack(
+        ),
+    SizedBox(width: 16),
+      // 오른쪽 영역
+      Container(
+        width: 130,
+        height: MediaQuery.of(context).size.height * 0.7,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            if (image != null)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(7),
-                child: Image.file(
-                  image,
-                  width: 80,
-                  height: 80,
-                  fit: BoxFit.cover,
+            // 콤보박스
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey[300]!),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: DropdownButton<String>(
+                value: selectedOption,
+                isExpanded: true,
+                underline: Container(),
+                items: ['상의', '하의', '상의+하의', '한벌옷']
+                    .map((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(
+                      value,
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    selectedOption = newValue!;
+                    topImage = null;
+                    bottomImage = null;
+                  });
+                },
+              ),
+            ),
+            SizedBox(height: 16),
+            // 업로드 영역
+            if (selectedOption == '상의+하의') ...[
+              // 상의 업로드 버튼 또는 미리보기
+              Container(
+                width: double.infinity,
+                height: 180,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey[300]!),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-              )
-            else
-              Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                child: topImage != null
+                    ? Stack(
                   children: [
-                    Icon(icon, size: 32, color: Colors.grey[600]),
-                    const SizedBox(height: 4),
-                    Container(
-                      width: double.infinity,
-                      alignment: Alignment.center,
-                      child: Text(
-                        label,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
+                    Positioned.fill(
+                      child: Image.file(
+                        topImage!,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            topImage = null;
+                          });
+                        },
+                        child: Container(
+                          padding: EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.grey[300]!),
+                          ),
+                          child: Icon(
+                            Icons.close,
+                            size: 20,
+                            color: Colors.grey[600],
+                          ),
                         ),
                       ),
                     ),
                   ],
+                )
+                    : InkWell(
+                  onTap: () => _pickImage(selectedOption),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.file_upload_outlined,
+                          size: 50,
+                          color: Colors.grey[600]),
+                      SizedBox(height: 12),
+                      Text(
+                        '상의 업로드',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
+              SizedBox(height: 16),
+              // 하의 업로드 버튼 또는 미리보기
+              Container(
+                width: double.infinity,
+                height: 180,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey[300]!),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: bottomImage != null
+                    ? Stack(
+                  children: [
+                    Positioned.fill(
+                      child: Image.file(
+                        bottomImage!,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            bottomImage = null;
+                          });
+                        },
+                        child: Container(
+                          padding: EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.grey[300]!),
+                          ),
+                          child: Icon(
+                            Icons.close,
+                            size: 20,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+                    : InkWell(
+                  onTap: () => _pickImage(selectedOption),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.file_upload_outlined,
+                          size: 50,
+                          color: Colors.grey[600]),
+                      SizedBox(height: 12),
+                      Text(
+                        '하의 업로드',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ] else ...[
+              // 단일 이미지 업로드 버튼 또는 미리보기
+              Container(
+                width: double.infinity,
+                height: 180,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey[300]!),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: (topImage != null || bottomImage != null)
+                    ? Stack(
+                  children: [
+                    Positioned.fill(
+                      child: Image.file(
+                        topImage ?? bottomImage!,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            topImage = null;
+                            bottomImage = null;
+                          });
+                        },
+                        child: Container(
+                          padding: EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.grey[300]!),
+                          ),
+                          child: Icon(
+                            Icons.close,
+                            size: 20,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+                    : InkWell(
+                  onTap: () => _pickImage(selectedOption),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.file_upload_outlined,
+                          size: 50,
+                          color: Colors.grey[600]),
+                      SizedBox(height: 12),
+                      Text(
+                        '${selectedOption == "상의" ? "상의" : selectedOption == "하의" ? "하의" : "한벌옷"} 업로드',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
+    ],
+    ),
+    ),
+    ),
+      // 피팅하기 버튼
+      Container(
+        padding: EdgeInsets.all(16),
+        child: _buildFittingButton(),
+      ),
+    ],
+    ),
     );
   }
 
@@ -406,59 +459,17 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
             return;
           }
 
-          showDialog(
-            context: context,
-            builder: (BuildContext context) {
-              return AlertDialog(
-                title: Text('피팅 방식 선택'),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ListTile(
-                      leading: Icon(Icons.checkroom),
-                      title: Text('일반 피팅'),
-                      subtitle: Text('상/하의 따로 저장'),
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => FittingLoadingPage(
-                              childInfo: widget.childInfo,
-                              topImage: topImage,
-                              bottomImage: bottomImage,
-                              isOnepiece: false,
-                              isFromCloset: false,  // 추가: 피팅룸에서 왔음을 표시
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    Divider(),
-                    ListTile(
-                      leading: Icon(Icons.accessibility_new),
-                      title: Text('한벌옷 피팅'),
-                      subtitle: Text('한벌옷으로 저장'),
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => FittingLoadingPage(
-                              childInfo: widget.childInfo,
-                              topImage: topImage,
-                              bottomImage: bottomImage,
-                              isOnepiece: true,
-                              isFromCloset: false,  // 추가: 피팅룸에서 왔음을 표시
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              );
-            },
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => FittingLoadingPage(
+                childInfo: widget.childInfo,
+                topImage: topImage,
+                bottomImage: bottomImage,
+                isOnepiece: selectedOption == '한벌옷',
+                isFromCloset: false,
+              ),
+            ),
           );
         },
         customBorder: CircleBorder(),
