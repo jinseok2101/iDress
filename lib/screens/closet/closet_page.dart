@@ -8,8 +8,6 @@ import 'closetpage/clothing_detail_page.dart';
 import 'closetpage/fitting_in_closet_set.dart';
 import 'closetpage/fitting_in_closet_pants.dart';
 import 'package:last3/screens/fitting_room/fittingroom/fitting_result_page.dart';
-import 'weather_widget.dart';
-
 
 class ClosetPage extends StatefulWidget {
   final Map<String, dynamic> childInfo;
@@ -105,7 +103,13 @@ class _ClosetPageState extends State<ClosetPage> {
         if (!selectedSeasons.contains('전체')) {
           clothing = clothing.where((entry) {
             final item = entry.value as Map<dynamic, dynamic>;
-            return selectedSeasons.contains(item['season']);
+            // season이 List인지 확인하고 교집합 여부 체크
+            if (item['season'] is List) {
+              final clothingSeasons = Set<String>.from(item['season']);
+              // 선택된 계절과 옷의 계절이 하나라도 겹치는지 확인
+              return clothingSeasons.intersection(selectedSeasons).isNotEmpty;
+            }
+            return false;
           }).toList();
         }
         break;
@@ -195,8 +199,6 @@ class _ClosetPageState extends State<ClosetPage> {
                           color: Colors.black87,
                         ),
                       ),
-                      SizedBox(width: 16),
-                      WeatherWidget(),
                     ],
                   ),
                   SizedBox(width: 32),

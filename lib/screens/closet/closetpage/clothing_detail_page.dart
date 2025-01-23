@@ -32,7 +32,7 @@ class _ClothingDetailPageState extends State<ClothingDetailPage> {
   late TextEditingController nameController;
   late TextEditingController sizeController;
   late TextEditingController memoController;
-  String selectedSeason = '';
+  Set<String> selectedSeasons = {};
   Color selectedColor = Colors.grey;
   bool _isLoading = false;
   DatabaseReference? _clothingRef;
@@ -58,7 +58,13 @@ class _ClothingDetailPageState extends State<ClothingDetailPage> {
     nameController = TextEditingController(text: widget.clothing['name'] ?? '');
     sizeController = TextEditingController(text: widget.clothing['size'] ?? '');
     memoController = TextEditingController(text: widget.clothing['memo'] ?? '');
-    selectedSeason = widget.clothing['season'] ?? '사계절';
+
+    // season 데이터 처리
+    if (widget.clothing['season'] is List) {
+      selectedSeasons = Set<String>.from(widget.clothing['season']);
+    } else {
+      selectedSeasons = {'사계절'};
+    }
 
     String savedColorName = widget.clothing['color'] ?? '회색';
     selectedColor = colorOptions
@@ -101,7 +107,7 @@ class _ClothingDetailPageState extends State<ClothingDetailPage> {
       final updates = {
         'name': nameController.text,
         'size': sizeController.text,
-        'season': selectedSeason,
+        'season': selectedSeasons.toList(),
         'color': colorName,
         'memo': memoController.text,
         'lastModified': ServerValue.timestamp,
@@ -117,7 +123,7 @@ class _ClothingDetailPageState extends State<ClothingDetailPage> {
 
         widget.clothing['name'] = nameController.text;
         widget.clothing['size'] = sizeController.text;
-        widget.clothing['season'] = selectedSeason;
+        widget.clothing['season'] = selectedSeasons.toList();
         widget.clothing['color'] = colorName;
         widget.clothing['memo'] = memoController.text;
 
@@ -286,17 +292,33 @@ class _ClothingDetailPageState extends State<ClothingDetailPage> {
           SizedBox(height: 8),
           Wrap(
             spacing: 8,
-            children: [
-              '봄', '여름', '가을', '겨울', '사계절'
-            ].map((season) => ChoiceChip(
-              label: Text(season),
-              selected: selectedSeason == season,
-              onSelected: (bool selected) {
-                setState(() {
-                  selectedSeason = selected ? season : selectedSeason;
-                });
-              },
-            )).toList(),
+            children: ['봄', '여름', '가을', '겨울', '사계절'].map((season) {
+              return ChoiceChip(
+                label: Text(season),
+                selected: selectedSeasons.contains(season),
+                onSelected: (bool selected) {
+                  setState(() {
+                    if (season == '사계절') {
+                      if (selected) {
+                        selectedSeasons = {'봄', '여름', '가을', '겨울', '사계절'};
+                      } else {
+                        selectedSeasons.clear();
+                      }
+                    } else {
+                      if (selected) {
+                        selectedSeasons.add(season);
+                        if (selectedSeasons.containsAll(['봄', '여름', '가을', '겨울'])) {
+                          selectedSeasons.add('사계절');
+                        }
+                      } else {
+                        selectedSeasons.remove(season);
+                        selectedSeasons.remove('사계절');
+                      }
+                    }
+                  });
+                },
+              );
+            }).toList(),
           ),
         ],
       ),
@@ -356,7 +378,14 @@ class _ClothingDetailPageState extends State<ClothingDetailPage> {
     );
   }
 
-  Widget _buildInfoItem(String label, String value) {
+  Widget _buildInfoItem(String label, dynamic value) {
+    String displayValue;
+    if (label == '계절' && value is List) {
+      displayValue = (value as List).join(', ');
+    } else {
+      displayValue = value?.toString() ?? '미지정';
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
@@ -375,7 +404,7 @@ class _ClothingDetailPageState extends State<ClothingDetailPage> {
           ),
           Expanded(
             child: Text(
-              value,
+              displayValue,
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.black87,
