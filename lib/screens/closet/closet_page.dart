@@ -8,6 +8,8 @@ import 'closetpage/clothing_detail_page.dart';
 import 'closetpage/fitting_in_closet_set.dart';
 import 'closetpage/fitting_in_closet_pants.dart';
 import 'package:last3/screens/fitting_room/fittingroom/fitting_result_page.dart';
+import 'weather_widget.dart';
+
 
 class ClosetPage extends StatefulWidget {
   final Map<String, dynamic> childInfo;
@@ -193,6 +195,8 @@ class _ClosetPageState extends State<ClosetPage> {
                           color: Colors.black87,
                         ),
                       ),
+                      SizedBox(width: 16),
+                      WeatherWidget(),
                     ],
                   ),
                   SizedBox(width: 32),
