@@ -1,4 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:typed_data';  // Uint8List 필요
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -6,6 +9,8 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'fittingroom/fitting_loading_page.dart';
 import 'fittingroom/fitting_history_page.dart';
+
+import 'package:path_provider/path_provider.dart';
 
 class FittingRoomPage extends StatefulWidget {
   final Map<String, dynamic> childInfo;
@@ -24,6 +29,9 @@ class FittingRoomPage extends StatefulWidget {
 class _FittingRoomPageState extends State<FittingRoomPage> {
   File? topImage;
   File? bottomImage;
+  String? _humanImageBase64;
+  String? _garmentImageBase64;
+  String _response = "";
   final ImagePicker _picker = ImagePicker();
   final FirebaseStorage _storage = FirebaseStorage.instance;
   final String _userId = FirebaseAuth.instance.currentUser?.uid ?? '';
@@ -48,6 +56,44 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
           .child(widget.childInfo['childId'])
           .child('clothing');
 
+
+  Future<void> uploadImages() async {
+
+    final url = Uri.parse('http://34.64.206.26:80/upload');
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'human_image': _humanImageBase64,
+          'garment_image': _garmentImageBase64,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        // 서버에서 반환된 Base64 이미지 데이터를 파싱
+        final Map<String, dynamic> responseData = jsonDecode(response.body);
+        final String resultBase64 = responseData['result_image'];
+
+        // Base64 이미지를 디코딩하여 이미지로 변환
+        final bytes = base64Decode(resultBase64);
+
+      } else {
+        setState(() {
+          _response = "서버 오류: ${response.statusCode}";
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _response = "에러 발생: $e";
+      });
+    }
+  }
+
+
+
+
+
   Future<void> _pickImage(String type) async {
     try {
       // 이미 이미지가 있고, 단일 이미지 옵션일 경우 더 이상 업로드 불가
@@ -66,11 +112,27 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
         imageQuality: 85,
       );
 
+      String encodeUrlToBase64(String url) {
+        // URL을 바이트 배열로 변환한 후 Base64로 인코딩
+        List<int> bytes = utf8.encode(url);
+        return base64Encode(bytes);
+      }
+
       if (pickedFile != null) {
+        final bytes = await pickedFile.readAsBytes();
+        String base64String = base64Encode(bytes);
+        if (widget.fullBodyImageUrl != null) {
+          String encodedUrl = encodeUrlToBase64(widget.fullBodyImageUrl!);
+          _humanImageBase64 = encodedUrl;
+        } else {
+          // fullBodyImageUrl이 null일 때 처리할 로직 추가
+          print("Image URL is null");
+        }
         setState(() {
           switch (selectedOption) {
             case '상의':
               topImage = File(pickedFile.path);
+              _garmentImageBase64=base64String;
               bottomImage = null;
               break;
             case '하의':
@@ -458,6 +520,8 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
             );
             return;
           }
+
+          uploadImages();
 
           Navigator.push(
             context,
