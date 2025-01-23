@@ -15,6 +15,7 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
+  final String _userId = FirebaseAuth.instance.currentUser?.uid ?? '';
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _heightController = TextEditingController();
   String? _selectedAge;
@@ -53,17 +54,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  Future<String> _uploadImage(File image, String folder) async {
-    final storageRef = FirebaseStorage.instance.ref();
-    final extension = path.extension(image.path).toLowerCase();
-    final fileName = '$folder/${DateTime.now().millisecondsSinceEpoch}$extension';
-
-    final uploadTask = storageRef.child(fileName).putFile(image);
-    final snapshot = await uploadTask;
-
-    return await snapshot.ref.getDownloadURL();
-  }
-
   Future<void> _registerChild() async {
     if (_nameController.text.isEmpty ||
         _heightController.text.isEmpty ||
@@ -81,19 +71,51 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    setState(() {
-      _isUploading = true;
-    });
+    setState(() => _isUploading = true);
 
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) throw Exception('사용자 인증 필요');
+      if (_userId.isEmpty) throw Exception('사용자가 인증되지 않았습니다.');
 
-      final profileImageUrl = await _uploadImage(_profileImage!, 'child_profile_images');
-      final fullBodyImageUrl = await _uploadImage(_fullBodyImage!, 'child_fullbody_images');
-      final childRef = FirebaseDatabase.instance.ref('users/${user.uid}/children').push();
+      // 1. Realtime Database에 먼저 child 노드 생성하여 childId 얻기
+      final childRef = FirebaseDatabase.instance
+          .ref()
+          .child('users')
+          .child(_userId)
+          .child('children')
+          .push();
 
+      final childId = childRef.key!;
+
+      // 2. 이미지 업로드
+      final profileImageRef = FirebaseStorage.instance
+          .ref()
+          .child('users')
+          .child(_userId)
+          .child('children')
+          .child(childId)
+          .child('child_profile_images')
+          .child('profile_${DateTime.now().millisecondsSinceEpoch}${path.extension(_profileImage!.path)}');
+
+      final fullBodyImageRef = FirebaseStorage.instance
+          .ref()
+          .child('users')
+          .child(_userId)
+          .child('children')
+          .child(childId)
+          .child('child_fullbody_images')
+          .child('fullbody_${DateTime.now().millisecondsSinceEpoch}${path.extension(_fullBodyImage!.path)}');
+
+      // 이미지 업로드 실행
+      final profileUpload = await profileImageRef.putFile(_profileImage!);
+      final fullBodyUpload = await fullBodyImageRef.putFile(_fullBodyImage!);
+
+      // URL 가져오기
+      final profileImageUrl = await profileUpload.ref.getDownloadURL();
+      final fullBodyImageUrl = await fullBodyUpload.ref.getDownloadURL();
+
+      // 3. child 데이터 저장
       await childRef.set({
+        'childId': childId,
         'name': _nameController.text,
         'age': _selectedAge,
         'gender': _selectedGender,
@@ -101,13 +123,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'clothingSize': _selectedClothingSize,
         'profileImageUrl': profileImageUrl,
         'fullBodyImageUrl': fullBodyImageUrl,
-        'wardrobe': [],
       });
-
-      // final userRef = FirebaseDatabase.instance.ref('users/${user.uid}/children');
-      // await userRef.update({
-      //   childRef.key!: true,
-      // });
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -125,9 +141,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       );
     } finally {
-      setState(() {
-        _isUploading = false;
-      });
+      setState(() => _isUploading = false);
     }
   }
 
@@ -178,7 +192,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     image: _profileImage != null
                         ? DecorationImage(
                       image: FileImage(_profileImage!),
-                      fit: BoxFit.cover, // 프로필 사진 빈 공간 제거
+                      fit: BoxFit.cover,
                     )
                         : null,
                   ),
@@ -191,20 +205,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       : null,
                 ),
               ),
-
               const SizedBox(height: 20),
               _buildTextField('이름', '아이의 이름을 입력하세요', _nameController),
-              _buildDropdownField('나이', '아이의 나이를 선택하세요', ['1세', '2세', '3세', '4세', '5세'],
+              _buildDropdownField('나이', '아이의 나이를 선택하세요',
+                  ['1세', '2세', '3세', '4세', '5세'],
                       (value) => setState(() => _selectedAge = value)),
-              _buildDropdownField('성별', '아이의 성별을 선택하세요', ['남자', '여자'],
+              _buildDropdownField('성별', '아이의 성별을 선택하세요',
+                  ['남자', '여자'],
                       (value) => setState(() => _selectedGender = value)),
               _buildTextField('신장(cm)', '아이의 신장을 입력하세요', _heightController),
-              _buildDropdownField(
-                  '옷의 사이즈',
-                  '아이의 옷 사이즈를 선택하세요',
+              _buildDropdownField('옷의 사이즈', '아이의 옷 사이즈를 선택하세요',
                   ['90', '100', '110', '120', '130'],
                       (value) => setState(() => _selectedClothingSize = value)),
-
               const SizedBox(height: 20),
               const Text(
                 '전신 사진',
@@ -217,8 +229,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               GestureDetector(
                 onTap: _pickFullBodyImage,
                 child: Container(
-                  width: 200, // 가로 크기를 줄임
-                  height: 300, // 세로 크기를 길게 유지
+                  width: 200,
+                  height: 300,
                   decoration: BoxDecoration(
                     color: Colors.grey.shade200,
                     borderRadius: BorderRadius.circular(15),
@@ -226,7 +238,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   child: _fullBodyImage != null
                       ? Image.file(
                     _fullBodyImage!,
-                    fit: BoxFit.cover, // 전신 사진 빈 공간 제거
+                    fit: BoxFit.cover,
                   )
                       : const Icon(
                     Icons.add_a_photo,
@@ -235,7 +247,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _isUploading ? null : _registerChild,
@@ -266,7 +277,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          Text(
+              label,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
+          ),
           const SizedBox(height: 8),
           TextField(
             controller: controller,
@@ -286,13 +300,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _buildDropdownField(String label, String hint, List<String> options, ValueChanged<String?> onChanged) {
+  Widget _buildDropdownField(
+      String label, String hint, List<String> options, ValueChanged<String?> onChanged) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          Text(
+              label,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
+          ),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
             decoration: InputDecoration(
@@ -304,7 +322,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 borderSide: BorderSide.none,
               ),
             ),
-            items: options.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+            items: options
+                .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                .toList(),
             onChanged: onChanged,
           ),
         ],
