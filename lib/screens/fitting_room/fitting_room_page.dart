@@ -532,6 +532,8 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
                 bottomImage: bottomImage,
                 isOnepiece: selectedOption == '한벌옷',
                 isFromCloset: false,
+                humanImageBase64: _humanImageBase64,
+                garmentImageBase64: _garmentImageBase64,
               ),
             ),
           );
