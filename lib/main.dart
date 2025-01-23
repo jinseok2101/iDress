@@ -14,6 +14,8 @@ import 'package:last3/screens/my_page.dart';
 import 'package:last3/screens/home/notice_page.dart';
 import 'package:last3/screens/home/information.dart';
 
+
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
