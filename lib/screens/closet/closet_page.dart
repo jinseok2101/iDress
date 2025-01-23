@@ -301,17 +301,19 @@ class _ClosetPageState extends State<ClosetPage> {
                                   onSelected: (bool selected) {
                                     setState(() {
                                       if (season == '전체') {
+                                        // '전체' 선택시, 다른 계절을 모두 해제하고 '전체'만 선택
                                         selectedSeasons.clear();
                                         selectedSeasons.add('전체');
                                       } else {
                                         if (selected) {
+                                          // '전체'가 선택되어 있으면 다른 계절을 모두 해제하고 선택
+                                          selectedSeasons.clear();
                                           selectedSeasons.add(season);
-                                          selectedSeasons.remove('전체');
                                         } else {
-                                          selectedSeasons.remove(season);
-                                        }
-                                        if (selectedSeasons.isEmpty) {
-                                          selectedSeasons.add('전체');
+                                          // '전체'가 선택된 상태에서는 계절을 해제할 수 없음
+                                          if (selectedSeasons.contains(season)) {
+                                            selectedSeasons.remove(season);
+                                          }
                                         }
                                       }
                                     });
@@ -320,6 +322,7 @@ class _ClosetPageState extends State<ClosetPage> {
                               );
                             }).toList(),
                           )
+
                         else if (selectedFilter == '색상')
                             Wrap(
                               spacing: 8,
