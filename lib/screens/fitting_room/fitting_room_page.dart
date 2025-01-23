@@ -201,7 +201,7 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
     body: Column(
     children: [
     Expanded(
-    child: Container(
+    child: Container( 
     margin: const EdgeInsets.all(16),
     child: Row(
       children: [
