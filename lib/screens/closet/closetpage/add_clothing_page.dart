@@ -46,7 +46,6 @@ class _AddClothingPageState extends State<AddClothingPage> {
   @override
   void initState() {
     super.initState();
-    selectedSeasons.add('사계절'); // 기본값으로 '사계절' 추가
   }
 
   Future<ImageSource?> _showImageSourceDialog(BuildContext context) async {
@@ -503,21 +502,42 @@ class _AddClothingPageState extends State<AddClothingPage> {
               spacing: 8,
               children: ['봄', '여름', '가을', '겨울', '사계절'].map((season) {
                 bool isSelected = selectedSeasons.contains(season);
+
                 return ChoiceChip(
                   label: Text(season),
                   selected: isSelected,
                   onSelected: (bool selected) {
                     setState(() {
-                      if (selected) {
-                        selectedSeasons.add(season);
+                      if (season == '사계절') {
+                        // '사계절'을 선택하면 모든 계절을 추가
+                        if (selected) {
+                          selectedSeasons.addAll(['봄', '여름', '가을', '겨울', '사계절']);
+                        } else {
+                          // '사계절'을 취소하면 모든 계절을 제거
+                          selectedSeasons.removeAll(['봄', '여름', '가을', '겨울', '사계절']);
+                        }
                       } else {
-                        selectedSeasons.remove(season);
+                        // '사계절'이 아닌 다른 계절을 선택/취소
+                        if (selected) {
+                          selectedSeasons.add(season);
+                        } else {
+                          selectedSeasons.remove(season);
+                        }
+
+                        // 봄, 여름, 가을, 겨울 4개가 모두 선택되면 '사계절'도 자동 선택
+                        if (selectedSeasons.containsAll(['봄', '여름', '가을', '겨울'])) {
+                          selectedSeasons.add('사계절');
+                        } else {
+                          // 4개 계절 중 하나라도 선택 취소하면 '사계절' 해제
+                          selectedSeasons.remove('사계절');
+                        }
                       }
                     });
                   },
                 );
               }).toList(),
             ),
+
             SizedBox(height: 24),
 
             Text(
