@@ -33,8 +33,7 @@ class _ClosetPageState extends State<ClosetPage> {
   Set<String> selectedItems = {};
   String selectedFilter = '카테고리';
   String selectedCategory = '전체';
-  String selectedSeason = '전체';
-  Set<String> selectedSeasons = {}; // 추가된 부분: Set<String>으로 선언
+  Set<String> selectedSeasons = {'전체'}; // 수정된 부분: 여러 계절 선택
   String selectedColor = '전체';
   final TextEditingController _searchController = TextEditingController();
 
@@ -103,10 +102,10 @@ class _ClosetPageState extends State<ClosetPage> {
         }
         break;
       case '계절':
-        if (selectedSeason != '전체') {
+        if (!selectedSeasons.contains('전체')) {
           clothing = clothing.where((entry) {
             final item = entry.value as Map<dynamic, dynamic>;
-            return item['season'] == selectedSeason;
+            return selectedSeasons.contains(item['season']);
           }).toList();
         }
         break;
@@ -121,30 +120,6 @@ class _ClosetPageState extends State<ClosetPage> {
     }
 
     return clothing;
-  }
-
-  void _onSeasonChanged(String? newSeason) {
-    if (newSeason != null && newSeason != '전체') {
-      setState(() {
-        selectedSeason = newSeason;
-        // 이미 선택한 계절과 중복되지 않도록 한다.
-        if (selectedSeason == '봄') {
-          seasons.remove('봄');
-        } else if (selectedSeason == '여름') {
-          seasons.remove('여름');
-        } else if (selectedSeason == '가을') {
-          seasons.remove('가을');
-        } else if (selectedSeason == '겨울') {
-          seasons.remove('겨울');
-        }
-      });
-    } else {
-      // '전체'를 선택하면 계절 목록을 다시 원래대로 복원
-      setState(() {
-        selectedSeason = '전체';
-        seasons.addAll(['봄', '여름', '가을', '겨울']);
-      });
-    }
   }
 
   Future<void> deleteSelectedItems() async {
@@ -189,6 +164,7 @@ class _ClosetPageState extends State<ClosetPage> {
       );
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -324,13 +300,19 @@ class _ClosetPageState extends State<ClosetPage> {
                                   selected: isSelected,
                                   onSelected: (bool selected) {
                                     setState(() {
-                                      if (selected) {
-                                        // 이미 다른 계절이 선택되어 있으면, 해당 계절을 해제하고 선택한 계절만 추가
+                                      if (season == '전체') {
                                         selectedSeasons.clear();
-                                        selectedSeasons.add(season);
+                                        selectedSeasons.add('전체');
                                       } else {
-                                        // 선택 해제 시 해당 계절만 삭제
-                                        selectedSeasons.remove(season);
+                                        if (selected) {
+                                          selectedSeasons.add(season);
+                                          selectedSeasons.remove('전체');
+                                        } else {
+                                          selectedSeasons.remove(season);
+                                        }
+                                        if (selectedSeasons.isEmpty) {
+                                          selectedSeasons.add('전체');
+                                        }
                                       }
                                     });
                                   },
@@ -458,14 +440,6 @@ class _ClosetPageState extends State<ClosetPage> {
                       });
                     }
                   });
-
-                  if (selectedSeasons.isNotEmpty) {
-                    filteredClothing = filteredClothing.where((entry) {
-                      final itemData = entry.value;
-                      final itemSeasons = itemData['season'] ?? []; // 옷의 계절 정보
-                      return selectedSeasons.any((season) => itemSeasons.contains(season));
-                    }).toList();
-                  }
 
                   // 검색어와 선택된 필터로 필터링 적용
                   if (isSearchVisible && _searchController.text.isNotEmpty) {
