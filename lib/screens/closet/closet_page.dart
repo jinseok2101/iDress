@@ -3,11 +3,8 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'closetpage/add_clothing_page.dart';
-import 'closetpage/fitting_in_closet_top.dart';
 import 'closetpage/clothing_detail_page.dart';
-import 'closetpage/fitting_in_closet_set.dart';
-import 'closetpage/fitting_in_closet_pants.dart';
-import 'package:last3/screens/fitting_room/fittingroom/fitting_result_page.dart';
+import 'closetpage/weather_widget.dart';
 
 class ClosetPage extends StatefulWidget {
   final Map<String, dynamic> childInfo;
@@ -31,7 +28,7 @@ class _ClosetPageState extends State<ClosetPage> {
   Set<String> selectedItems = {};
   String selectedFilter = '카테고리';
   String selectedCategory = '전체';
-  Set<String> selectedSeasons = {'전체'}; // 수정된 부분: 여러 계절 선택
+  Set<String> selectedSeasons = {'전체'};
   String selectedColor = '전체';
   final TextEditingController _searchController = TextEditingController();
 
@@ -95,19 +92,16 @@ class _ClosetPageState extends State<ClosetPage> {
         if (selectedCategory != '전체') {
           clothing = clothing.where((entry) {
             final item = entry.value as Map<dynamic, dynamic>;
-            return item['category'] == selectedCategory;
-          }).toList();
-        }
-        break;
-      case '계절':
-        if (!selectedSeasons.contains('전체')) {
-          clothing = clothing.where((entry) {
-            final item = entry.value as Map<dynamic, dynamic>;
-            // season이 List인지 확인하고 교집합 여부 체크
-            if (item['season'] is List) {
-              final clothingSeasons = Set<String>.from(item['season']);
-              // 선택된 계절과 옷의 계절이 하나라도 겹치는지 확인
-              return clothingSeasons.intersection(selectedSeasons).isNotEmpty;
+            final itemSeason = item['season'];
+
+            // 디버그용 출력
+            print('아이템 계절: $itemSeason, 선택된 계절: $selectedSeasons');
+
+            // 단일 계절과 다중 계절 모두 처리
+            if (itemSeason is String) {
+              return selectedSeasons.contains(itemSeason);
+            } else if (itemSeason is List) {
+              return itemSeason.any((season) => selectedSeasons.contains(season));
             }
             return false;
           }).toList();
@@ -129,7 +123,7 @@ class _ClosetPageState extends State<ClosetPage> {
   Future<void> deleteSelectedItems() async {
     try {
       for (String key in selectedItems) {
-        final categories = ['한벌옷', '상의', '하의', '신발'];
+        final categories = ['올인원', '상의', '하의', '신발'];
         for (String category in categories) {
           final categoryRef = _clothingRef.child(category);
           final itemSnapshot = await categoryRef.child(key).get();
@@ -187,8 +181,7 @@ class _ClosetPageState extends State<ClosetPage> {
                         radius: 35,
                         backgroundImage: _childProfileUrl != null
                             ? NetworkImage(_childProfileUrl!)
-                            : AssetImage('assets/images/profile.jpg')
-                        as ImageProvider,
+                            : AssetImage('assets/images/profile.jpg') as ImageProvider,
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -202,37 +195,8 @@ class _ClosetPageState extends State<ClosetPage> {
                     ],
                   ),
                   SizedBox(width: 32),
-                  Row(
-                    children: [
-                      _buildActionButtonWithLabel(
-                        icon: Icons.checkroom,
-                        label: '피팅하기',
-                        backgroundColor: Colors.blue[50]!,
-                        context: context,
-                      ),
-                      SizedBox(width: 16),
-                      _buildActionButtonWithLabel(
-                        icon: Icons.camera_alt,
-                        label: '옷 추가',
-                        backgroundColor: Colors.blue[50]!,
-                        context: context,
-                      ),
-                      SizedBox(width: 16),
-                      _buildActionButtonWithLabel(
-                        icon: Icons.search,
-                        label: '옷 검색',
-                        backgroundColor: Colors.blue[50]!,
-                        onTap: () {
-                          setState(() {
-                            isSearchVisible = !isSearchVisible;
-                            if (!isSearchVisible) {
-                              _searchController.clear();
-                            }
-                          });
-                        },
-                        context: context,
-                      ),
-                    ],
+                  Expanded(
+                    child: WeatherWidget(),
                   ),
                 ],
               ),
@@ -243,30 +207,57 @@ class _ClosetPageState extends State<ClosetPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: filterTypes.map((type) {
-                        bool isSelected = selectedFilter == type;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8.0),
-                          child: ChoiceChip(
-                            label: Text(type),
-                            selected: isSelected,
-                            onSelected: (bool selected) {
-                              setState(() {
-                                if (selected) {
-                                  selectedFilter = type;
-                                  selectedCategory = '전체';
-                                  selectedSeasons = {'전체'}; // 초기화
-                                  selectedColor = '전체';
-                                }
-                              });
-                            },
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: filterTypes.map((type) {
+                          bool isSelected = selectedFilter == type;
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8.0),
+                            child: ChoiceChip(
+                              label: Text(type),
+                              selected: isSelected,
+                              onSelected: (bool selected) {
+                                setState(() {
+                                  if (selected) {
+                                    selectedFilter = type;
+                                    selectedCategory = '전체';
+                                    selectedSeasons = {'전체'};
+                                    selectedColor = '전체';
+                                  }
+                                });
+                              },
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      TextButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            isSearchVisible = !isSearchVisible;
+                            if (!isSearchVisible) {
+                              _searchController.clear();
+                            }
+                          });
+                        },
+                        icon: Icon(
+                          Icons.search,
+                          size: 20,
+                          color: Colors.grey[600],
+                        ),
+                        label: Text(
+                          '검색',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
                           ),
-                        );
-                      }).toList(),
-                    ),
+                        ),
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        ),
+                      ),
+                    ],
                   ),
                   SizedBox(height: 16),
                   SingleChildScrollView(
@@ -281,7 +272,7 @@ class _ClosetPageState extends State<ClosetPage> {
                               children: [
                                 _buildCategoryButton('전체', Icons.checkroom),
                                 SizedBox(width: 16),
-                                _buildCategoryButton('한벌옷', Icons.accessibility_new),
+                                _buildCategoryButton('올인원', Icons.accessibility_new),
                                 SizedBox(width: 16),
                                 _buildCategoryButton('상의', Icons.checkroom),
                                 SizedBox(width: 16),
@@ -303,19 +294,17 @@ class _ClosetPageState extends State<ClosetPage> {
                                   onSelected: (bool selected) {
                                     setState(() {
                                       if (season == '전체') {
-                                        // '전체' 선택시, 다른 계절을 모두 해제하고 '전체'만 선택
                                         selectedSeasons.clear();
                                         selectedSeasons.add('전체');
                                       } else {
                                         if (selected) {
-                                          // '전체'가 선택되어 있으면 다른 계절을 모두 해제하고 선택
-                                          selectedSeasons.clear();
                                           selectedSeasons.add(season);
+                                          selectedSeasons.remove('전체');
                                         } else {
-                                          // '전체'가 선택된 상태에서는 계절을 해제할 수 없음
-                                          if (selectedSeasons.contains(season)) {
-                                            selectedSeasons.remove(season);
-                                          }
+                                          selectedSeasons.remove(season);
+                                        }
+                                        if (selectedSeasons.isEmpty) {
+                                          selectedSeasons.add('전체');
                                         }
                                       }
                                     });
@@ -324,7 +313,6 @@ class _ClosetPageState extends State<ClosetPage> {
                               );
                             }).toList(),
                           )
-
                         else if (selectedFilter == '색상')
                             Wrap(
                               spacing: 8,
@@ -610,6 +598,39 @@ class _ClosetPageState extends State<ClosetPage> {
           ],
         ),
       ),
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.lightBlue.withOpacity(0.3),
+              spreadRadius: 2,
+              blurRadius: 8,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: FloatingActionButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AddClothingPage(
+                  childInfo: {
+                    'childId': _childId,
+                    'childName': _childName,
+                    'childImage': _childProfileUrl,
+                  },
+                ),
+              ),
+            );
+          },
+          child: Icon(Icons.add),
+          backgroundColor: Colors.blue,
+          elevation: 0,
+          shape: CircleBorder(),
+        ),
+      ),
       bottomNavigationBar: isDeleteMode
           ? Container(
         padding: EdgeInsets.all(16),
@@ -634,196 +655,6 @@ class _ClosetPageState extends State<ClosetPage> {
         ),
       )
           : null,
-    );
-  }
-
-  Widget _buildActionButtonWithLabel({
-    required IconData icon,
-    required String label,
-    required Color backgroundColor,
-    required BuildContext context,
-    VoidCallback? onTap,
-  }) {
-    return InkWell(
-      onTap: onTap ?? () async {
-        if (label == '옷 추가') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => AddClothingPage(
-                childInfo: {
-                  'childId': _childId,
-                  'childName': _childName,
-                  'childImage': _childProfileUrl,
-                },
-              ),
-            ),
-          );
-        } else if (label == '피팅하기') {
-          try {
-            final setRef = FirebaseDatabase.instance
-                .ref()
-                .child('users')
-                .child(_userId)
-                .child('children')
-                .child(_childId!)
-                .child('clothing')
-                .child('한벌옷');
-
-            final setSnapshot = await setRef.get();
-            if (setSnapshot.exists) {
-              final setData = setSnapshot.value as Map<dynamic, dynamic>;
-              List<Map<dynamic, dynamic>> setClothingList = [];
-              setData.forEach((key, value) {
-                if (value is Map && value['category'] == '한벌옷') {
-                  setClothingList.add(Map<dynamic, dynamic>.from(value));
-                }
-              });
-
-              if (mounted && setClothingList.isNotEmpty) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => FittingInClosetSet(
-                      userId: _userId,
-                      childId: _childId!,
-                      setClothes: setClothingList,
-                    ),
-                  ),
-                );
-                return;
-              }
-            }
-
-            final topRef = FirebaseDatabase.instance
-                .ref()
-                .child('users')
-                .child(_userId)
-                .child('children')
-                .child(_childId!)
-                .child('clothing')
-                .child('상의');
-
-            final topSnapshot = await topRef.get();
-            if (topSnapshot.exists) {
-              final topData = topSnapshot.value as Map<dynamic, dynamic>;
-              List<Map<dynamic, dynamic>> topClothingList = [];
-              topData.forEach((key, value) {
-                if (value is Map && value['category'] == '상의') {
-                  topClothingList.add(Map<dynamic, dynamic>.from(value));
-                }
-              });
-
-              if (mounted && topClothingList.isNotEmpty) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => FittingInClosetTop(
-                      userId: _userId,
-                      childId: _childId!,
-                      topClothes: topClothingList,
-                    ),
-                  ),
-                );
-                return;
-              }
-            }
-
-            final pantsRef = FirebaseDatabase.instance
-                .ref()
-                .child('users')
-                .child(_userId)
-                .child('children')
-                .child(_childId!)
-                .child('clothing')
-                .child('하의');
-
-            final pantsSnapshot = await pantsRef.get();
-            if (pantsSnapshot.exists) {
-              final pantsData = pantsSnapshot.value as Map<dynamic, dynamic>;
-              List<Map<dynamic, dynamic>> pantsClothingList = [];
-              pantsData.forEach((key, value) {
-                if (value is Map && value['category'] == '하의') {
-                  pantsClothingList.add(Map<dynamic, dynamic>.from(value));
-                }
-              });
-
-              if (mounted && pantsClothingList.isNotEmpty) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => FittingInClosetPants(
-                      userId: _userId,
-                      childId: _childId!,
-                      pantsClothes: pantsClothingList,
-                      selectedTopImageUrl: '',
-                    ),
-                  ),
-                );
-                return;
-              }
-            }
-
-            if (mounted) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => FittingResultPage(
-                    childInfo: {
-                      'childId': _childId,
-                      'childName': _childName,
-                      'childImage': _childProfileUrl,
-                    },
-                    topImage: '',
-                    bottomImage: '',
-                    isOnepiece: false,
-                    isFromCloset: true,
-                  ),
-                ),
-              );
-            }
-          } catch (e) {
-            print('데이터 로드 오류: $e');
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('데이터를 불러오는 중 오류가 발생했습니다')),
-            );
-          }
-        }
-      },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: backgroundColor,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.2),
-                  spreadRadius: 1,
-                  blurRadius: 4,
-                  offset: Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Icon(
-              icon,
-              size: 30,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.black87,
-            ),
-          ),
-        ],
-      ),
     );
   }
 

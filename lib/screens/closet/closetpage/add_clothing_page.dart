@@ -35,7 +35,7 @@ class _AddClothingPageState extends State<AddClothingPage> {
   final ClothingAnalyzer _analyzer = ClothingAnalyzer();
 
   final List<Map<String, dynamic>> categories = [
-    {'label': '한벌옷', 'icon': Icons.accessibility_new},
+    {'label': '올인원', 'icon': Icons.accessibility_new},
     {'label': '상의', 'icon': Icons.checkroom},
     {'label': '하의', 'icon': Icons.checkroom},
     {'label': '신발', 'icon': Icons.checkroom},
