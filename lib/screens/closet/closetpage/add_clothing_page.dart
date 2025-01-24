@@ -113,7 +113,6 @@ class _AddClothingPageState extends State<AddClothingPage> {
           selectedColor = result['color'];
           // 계절 정보 적용
           selectedSeasons = Set<String>.from(result['seasons'] ?? ['봄']);
-          memoController.text = result['memo'] ?? '';
           _isAnalyzing = false;
         });
 
@@ -130,9 +129,6 @@ class _AddClothingPageState extends State<AddClothingPage> {
                     Text('카테고리: ${result['category']}'),
                     Text('색상: ${result['color']}'),
                     Text('계절: ${(result['seasons'] as List<String>).join(", ")}'),
-                    SizedBox(height: 8),
-                    Text('상세 설명:'),
-                    Text(result['memo'] ?? ''),
                   ],
                 ),
               ),
@@ -147,7 +143,6 @@ class _AddClothingPageState extends State<AddClothingPage> {
                       selectedCategory = result['category'];
                       selectedColor = result['color'];
                       selectedSeasons = Set<String>.from(result['seasons'] ?? ['봄']);
-                      memoController.text = result['memo'] ?? '';
                     });
                     Navigator.pop(context);
                   },
