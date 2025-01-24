@@ -1,11 +1,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path/path.dart' as path;
+import 'package:intl/intl.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({Key? key}) : super(key: key);
@@ -15,11 +17,13 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
+  final String _userId = FirebaseAuth.instance.currentUser?.uid ?? '';
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _heightController = TextEditingController();
-  String? _selectedAge;
+  final TextEditingController _weightController = TextEditingController();
+
+  DateTime? _selectedBirthdate;
   String? _selectedGender;
-  String? _selectedClothingSize;
   File? _profileImage;
   File? _fullBodyImage;
   bool _isUploading = false;
@@ -28,6 +32,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void dispose() {
     _nameController.dispose();
     _heightController.dispose();
+    _weightController.dispose();
     super.dispose();
   }
 
@@ -53,23 +58,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  Future<String> _uploadImage(File image, String folder) async {
-    final storageRef = FirebaseStorage.instance.ref();
-    final extension = path.extension(image.path).toLowerCase();
-    final fileName = '$folder/${DateTime.now().millisecondsSinceEpoch}$extension';
-
-    final uploadTask = storageRef.child(fileName).putFile(image);
-    final snapshot = await uploadTask;
-
-    return await snapshot.ref.getDownloadURL();
+  void _showDatePicker(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext builder) {
+        return SizedBox(
+          height: 350,
+          width: 450,
+          child: CupertinoDatePicker(
+            mode: CupertinoDatePickerMode.date,
+            initialDateTime: DateTime.now(),
+            maximumDate: DateTime.now(),
+            minimumYear: DateTime.now().year - 10,
+            maximumYear: DateTime.now().year,
+            onDateTimeChanged: (DateTime newDate) {
+              setState(() {
+                _selectedBirthdate = newDate;
+              });
+            },
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _registerChild() async {
     if (_nameController.text.isEmpty ||
         _heightController.text.isEmpty ||
-        _selectedAge == null ||
+        _weightController.text.isEmpty ||
+        _selectedBirthdate == null ||
         _selectedGender == null ||
-        _selectedClothingSize == null ||
         _profileImage == null ||
         _fullBodyImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -81,33 +99,54 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    setState(() {
-      _isUploading = true;
-    });
+    setState(() => _isUploading = true);
 
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) throw Exception('사용자 인증 필요');
+      if (_userId.isEmpty) throw Exception('사용자가 인증되지 않았습니다.');
 
-      final profileImageUrl = await _uploadImage(_profileImage!, 'child_profile_images');
-      final fullBodyImageUrl = await _uploadImage(_fullBodyImage!, 'child_fullbody_images');
-      final childRef = FirebaseDatabase.instance.ref('users/${user.uid}/children').push();
+      final childRef = FirebaseDatabase.instance
+          .ref()
+          .child('users')
+          .child(_userId)
+          .child('children')
+          .push();
+
+      final childId = childRef.key!;
+
+      final profileImageRef = FirebaseStorage.instance
+          .ref()
+          .child('users')
+          .child(_userId)
+          .child('children')
+          .child(childId)
+          .child('child_profile_images')
+          .child('profile_${DateTime.now().millisecondsSinceEpoch}${path.extension(_profileImage!.path)}');
+
+      final fullBodyImageRef = FirebaseStorage.instance
+          .ref()
+          .child('users')
+          .child(_userId)
+          .child('children')
+          .child(childId)
+          .child('child_fullbody_images')
+          .child('fullbody_${DateTime.now().millisecondsSinceEpoch}${path.extension(_fullBodyImage!.path)}');
+
+      final profileUpload = await profileImageRef.putFile(_profileImage!);
+      final fullBodyUpload = await fullBodyImageRef.putFile(_fullBodyImage!);
+
+      final profileImageUrl = await profileUpload.ref.getDownloadURL();
+      final fullBodyImageUrl = await fullBodyUpload.ref.getDownloadURL();
 
       await childRef.set({
+        'childId': childId,
         'name': _nameController.text,
-        'age': _selectedAge,
+        'birthdate': _selectedBirthdate?.toIso8601String(),
         'gender': _selectedGender,
         'height': _heightController.text,
-        'clothingSize': _selectedClothingSize,
+        'weight': _weightController.text,
         'profileImageUrl': profileImageUrl,
         'fullBodyImageUrl': fullBodyImageUrl,
-        'wardrobe': [],
       });
-
-      // final userRef = FirebaseDatabase.instance.ref('users/${user.uid}/children');
-      // await userRef.update({
-      //   childRef.key!: true,
-      // });
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -125,9 +164,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       );
     } finally {
-      setState(() {
-        _isUploading = false;
-      });
+      setState(() => _isUploading = false);
     }
   }
 
@@ -178,7 +215,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     image: _profileImage != null
                         ? DecorationImage(
                       image: FileImage(_profileImage!),
-                      fit: BoxFit.cover, // 프로필 사진 빈 공간 제거
+                      fit: BoxFit.cover,
                     )
                         : null,
                   ),
@@ -191,20 +228,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       : null,
                 ),
               ),
-
               const SizedBox(height: 20),
               _buildTextField('이름', '아이의 이름을 입력하세요', _nameController),
-              _buildDropdownField('나이', '아이의 나이를 선택하세요', ['1세', '2세', '3세', '4세', '5세'],
-                      (value) => setState(() => _selectedAge = value)),
-              _buildDropdownField('성별', '아이의 성별을 선택하세요', ['남자', '여자'],
+              _buildBirthdateField('생년월일', '아이의 생년월일을 선택하세요', _showDatePicker),
+              _buildDropdownField('성별', '아이의 성별을 선택하세요',
+                  ['남자', '여자'],
                       (value) => setState(() => _selectedGender = value)),
               _buildTextField('신장(cm)', '아이의 신장을 입력하세요', _heightController),
-              _buildDropdownField(
-                  '옷의 사이즈',
-                  '아이의 옷 사이즈를 선택하세요',
-                  ['90', '100', '110', '120', '130'],
-                      (value) => setState(() => _selectedClothingSize = value)),
-
+              _buildTextField('체중(kg)', '아이의 체중을 입력하세요', _weightController),
               const SizedBox(height: 20),
               const Text(
                 '전신 사진',
@@ -217,8 +248,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               GestureDetector(
                 onTap: _pickFullBodyImage,
                 child: Container(
-                  width: 200, // 가로 크기를 줄임
-                  height: 300, // 세로 크기를 길게 유지
+                  width: 200,
+                  height: 300,
                   decoration: BoxDecoration(
                     color: Colors.grey.shade200,
                     borderRadius: BorderRadius.circular(15),
@@ -226,7 +257,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   child: _fullBodyImage != null
                       ? Image.file(
                     _fullBodyImage!,
-                    fit: BoxFit.cover, // 전신 사진 빈 공간 제거
+                    fit: BoxFit.cover,
                   )
                       : const Icon(
                     Icons.add_a_photo,
@@ -235,7 +266,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _isUploading ? null : _registerChild,
@@ -266,7 +296,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          Text(
+              label,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
+          ),
           const SizedBox(height: 8),
           TextField(
             controller: controller,
@@ -286,13 +319,52 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _buildDropdownField(String label, String hint, List<String> options, ValueChanged<String?> onChanged) {
+  Widget _buildBirthdateField(String label, String hint, Function(BuildContext) onTap) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          Text(
+              label,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
+          ),
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: () => onTap(context),
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+              child: Text(
+                _selectedBirthdate != null
+                    ? DateFormat('yyyy-MM-dd').format(_selectedBirthdate!)
+                    : hint,
+                style: TextStyle(
+                  color: Colors.black,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDropdownField(
+      String label, String hint, List<String> options, ValueChanged<String?> onChanged) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+              label,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
+          ),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
             decoration: InputDecoration(
@@ -304,7 +376,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 borderSide: BorderSide.none,
               ),
             ),
-            items: options.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+            items: options
+                .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                .toList(),
             onChanged: onChanged,
           ),
         ],

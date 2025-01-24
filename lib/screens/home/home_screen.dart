@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:giffy_dialog/giffy_dialog.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -14,7 +15,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Map<String, dynamic>> childrenProfiles = [];
   bool _isLoading = true;
   bool isSelecting = false;
-  Set<int> _selectedProfileIndices = {};
+  int? _selectedProfileIndex; // 단일 선택을 위한 변수
 
   @override
   void initState() {
@@ -41,7 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
             'key': entry.key,
             'name': childData['name'] ?? '',
             'imageUrl': childData['profileImageUrl'] ?? '',
-            'fullBodyImageUrl': childData['fullBodyImageUrl'] ?? '',  // 전신사진 URL 추가
+            'fullBodyImageUrl': childData['fullBodyImageUrl'] ?? '', // 전신사진 URL 추가
           };
         }).toList();
 
@@ -66,39 +67,32 @@ class _HomeScreenState extends State<HomeScreen> {
   void _toggleSelecting() {
     setState(() {
       if (isSelecting) {
-        _selectedProfileIndices.clear();
+        _selectedProfileIndex = null;
       }
       isSelecting = !isSelecting;
     });
   }
 
-  void _deleteSelectedProfiles() async {
+  void _deleteSelectedProfile() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    if (user == null || _selectedProfileIndex == null) return;
 
     setState(() {
       _isLoading = true;
     });
 
     try {
-      for (int index in _selectedProfileIndices) {
-        final childKey = childrenProfiles[index]['key'];
-        if (childKey != null) {
-          await FirebaseDatabase.instance.ref('children/$childKey').remove();
-          await FirebaseDatabase.instance
-              .ref('users/${user.uid}/children/$childKey')
-              .remove();
-        }
+      final childKey = childrenProfiles[_selectedProfileIndex!]['key'];
+      if (childKey != null) {
+        //await FirebaseDatabase.instance.ref('children/$childKey').remove();
+        await FirebaseDatabase.instance
+            .ref('users/${user.uid}/children/$childKey')
+            .remove();
       }
 
       setState(() {
-        childrenProfiles = childrenProfiles
-            .asMap()
-            .entries
-            .where((entry) => !_selectedProfileIndices.contains(entry.key))
-            .map((entry) => entry.value)
-            .toList();
-        _selectedProfileIndices.clear();
+        childrenProfiles.removeAt(_selectedProfileIndex!);
+        _selectedProfileIndex = null;
         _isLoading = false;
       });
 
@@ -119,6 +113,49 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
     }
+  }
+
+  void _editSelectedProfile() {
+    if (_selectedProfileIndex == null) return;
+    final selectedChild = childrenProfiles[_selectedProfileIndex!];
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return GiffyDialog.image(
+          title: Text(
+            '프로필 변경',
+            style: TextStyle(
+              fontSize: 24.0,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+
+          Image.network(
+            selectedChild['imageUrl'] ?? '',
+            fit: BoxFit.cover,
+          ),
+
+          content: Text(
+            '이름: ${selectedChild['name']}\n전신 사진 URL: ${selectedChild['fullBodyImageUrl']}',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16.0,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, 'CANCEL'),
+              child: const Text('CANCEL'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, 'OK'),
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -159,15 +196,14 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         Positioned(
-                          // 이미지의 위치를 아래로 내리기 위해 Positioned 사용
-                          right: 20,  // 오른쪽에 배치
-                          bottom: 100, // 화면 하단에서 30만큼 위로 배치
+                          right: 20,
+                          bottom: 50,
                           child: GestureDetector(
                             onTap: () => context.go('/mypage'),
                             child: Image.asset(
                               'assets/images/mypage.png',
-                              height: 40,  // 이미지 크기 조정
-                              width: 40,
+                              height: 45,
+                              width: 45,
                             ),
                           ),
                         ),
@@ -234,26 +270,25 @@ class _HomeScreenState extends State<HomeScreen> {
                         if (index < childrenProfiles.length) {
                           final child = childrenProfiles[index];
                           final isSelected =
-                          _selectedProfileIndices.contains(index);
+                              _selectedProfileIndex == index;
 
                           return GestureDetector(
                             onTap: () {
                               if (isSelecting) {
                                 setState(() {
-                                  if (isSelected) {
-                                    _selectedProfileIndices.remove(index);
-                                  } else {
-                                    _selectedProfileIndices.add(index);
-                                  }
+                                  _selectedProfileIndex =
+                                  isSelected ? null : index;
                                 });
                               } else {
                                 context.go(
                                   '/main',
                                   extra: {
                                     'childName': child['name'],
-                                    'childImage': child['imageUrl'],
+                                    'childImage':
+                                    child['imageUrl'],
                                     'childId': child['key'],
-                                    'fullBodyImageUrl': child['fullBodyImageUrl'],  // 전신사진 URL 추가
+                                    'fullBodyImageUrl':
+                                    child['fullBodyImageUrl'],
                                   },
                                 );
                               }
@@ -339,15 +374,22 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       if (isSelecting)
                         FloatingActionButton(
-                          onPressed: _deleteSelectedProfiles,
+                          onPressed: _deleteSelectedProfile,
                           backgroundColor: Colors.red,
                           child: const Icon(Icons.delete, color: Colors.white),
                         ),
                       const SizedBox(height: 10),
+                      if (isSelecting)
+                        FloatingActionButton(
+                          onPressed: _editSelectedProfile,
+                          backgroundColor: Colors.orange,
+                          child: const Icon(Icons.edit, color: Colors.white),
+                        ),
+                      const SizedBox(height: 10),
                       FloatingActionButton(
                         onPressed: _toggleSelecting,
-                        backgroundColor: Colors.orange,
-                        child: const Icon(Icons.edit, color: Colors.white),
+                        backgroundColor: Color(0xFF7165D6),
+                        child: const Icon(Icons.more_vert, color: Colors.white),
                       ),
                     ],
                   ),
