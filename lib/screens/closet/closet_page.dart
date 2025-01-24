@@ -87,34 +87,37 @@ class _ClosetPageState extends State<ClosetPage> {
       }).toList();
     }
 
-    switch (selectedFilter) {
-      case '카테고리':
-        if (selectedCategory != '전체') {
-          clothing = clothing.where((entry) {
-            final item = entry.value as Map<dynamic, dynamic>;
-            final itemSeason = item['season'];
+    // 카테고리 필터링
+    if (selectedFilter == '카테고리' && selectedCategory != '전체') {
+      clothing = clothing.where((entry) {
+        final item = entry.value as Map<dynamic, dynamic>;
+        return item['category'] == selectedCategory;
+      }).toList();
+    }
 
-            // 디버그용 출력
-            print('아이템 계절: $itemSeason, 선택된 계절: $selectedSeasons');
+    // 계절 필터링
+    if (selectedFilter == '계절' && !selectedSeasons.contains('전체')) {
+      clothing = clothing.where((entry) {
+        final item = entry.value as Map<dynamic, dynamic>;
+        final itemSeasons = item['season'];
 
-            // 단일 계절과 다중 계절 모두 처리
-            if (itemSeason is String) {
-              return selectedSeasons.contains(itemSeason);
-            } else if (itemSeason is List) {
-              return itemSeason.any((season) => selectedSeasons.contains(season));
-            }
-            return false;
-          }).toList();
+        if (itemSeasons is List) {
+          // 아이템의 계절이 리스트인 경우
+          return itemSeasons.any((season) => selectedSeasons.contains(season));
+        } else if (itemSeasons is String) {
+          // 아이템의 계절이 문자열인 경우
+          return selectedSeasons.contains(itemSeasons);
         }
-        break;
-      case '색상':
-        if (selectedColor != '전체') {
-          clothing = clothing.where((entry) {
-            final item = entry.value as Map<dynamic, dynamic>;
-            return item['color'] == selectedColor;
-          }).toList();
-        }
-        break;
+        return false;
+      }).toList();
+    }
+
+    // 색상 필터링
+    if (selectedFilter == '색상' && selectedColor != '전체') {
+      clothing = clothing.where((entry) {
+        final item = entry.value as Map<dynamic, dynamic>;
+        return item['color'] == selectedColor;
+      }).toList();
     }
 
     return clothing;
