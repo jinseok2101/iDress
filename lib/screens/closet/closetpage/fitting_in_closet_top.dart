@@ -232,6 +232,7 @@ class _FittingInClosetTopState extends State<FittingInClosetTop> {
                             'childId': widget.childId,
                             'userId': widget.userId,
                           },
+                          clothType: "",
                           topImage: selectedTopId ?? '',
                           bottomImage: '',
                           isOnepiece: false,

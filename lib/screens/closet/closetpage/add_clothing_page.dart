@@ -7,6 +7,8 @@ import 'package:path/path.dart' as path;
 import 'package:uuid/uuid.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'clothing_analyzer.dart';
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 class AddClothingPage extends StatefulWidget {
   final Map<String, dynamic> childInfo;
@@ -167,6 +169,48 @@ class _AddClothingPageState extends State<AddClothingPage> {
     }
   }
 
+  Future<File?> _processImageSegmentation(File imageFile) async {
+    try {
+      var uri = Uri.parse('http://34.47.104.167/upload');
+      var request = http.MultipartRequest('POST', uri);
+
+      // Add file to the request
+      var stream = http.ByteStream(imageFile.openRead());
+      var length = await imageFile.length();
+
+      var multipartFile = http.MultipartFile(
+        'file',
+        stream,
+        length,
+        filename: 'image.jpg',
+        contentType: MediaType('image', 'jpeg'),
+      );
+
+      request.files.add(multipartFile);
+
+      // Send the request
+      var streamedResponse = await request.send();
+
+      if (streamedResponse.statusCode == 200) {
+        // 응답을 파일로 저장
+        final tempDir = await Directory.systemTemp.createTemp();
+        final tempFile = File(
+            '${tempDir.path}/processed_${DateTime.now().millisecondsSinceEpoch}.png'
+        );
+
+        // 스트림을 파일로 저장
+        await streamedResponse.stream.pipe(tempFile.openWrite());
+        return tempFile;
+      } else {
+        print('서버 오류: ${streamedResponse.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('이미지 처리 중 오류 발생: $e');
+      return null;
+    }
+  }
+
   Future<void> _pickImage() async {
     try {
       final ImageSource? source = await _showImageSourceDialog(context);
@@ -180,9 +224,18 @@ class _AddClothingPageState extends State<AddClothingPage> {
         );
 
         if (pickedFile != null) {
-          setState(() {
-            _imageFile = File(pickedFile.path);
-          });
+          final File imageFile = File(pickedFile.path);
+          final File? processedFile = await _processImageSegmentation(imageFile);
+          if (processedFile != null){
+            setState(() {
+              _imageFile = processedFile;
+            });
+          }
+          else {
+            setState(() {
+              _imageFile = imageFile;
+            });
+          }
           await _analyzeAndSetClothing();
         }
       }
