@@ -38,6 +38,7 @@ Future<void> saveUserToFirebase({
 }
 
 class _SignupScreenState extends ConsumerState<SignupScreen> {
+  final String _userId = FirebaseAuth.instance.currentUser?.uid ?? '';  // 클래스 멤버 변수로 이동
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -70,12 +71,19 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
   Future<String?> _uploadImageToFirebase(XFile imageFile) async {
     try {
-      final storageRef = FirebaseStorage.instance.ref();
-      final profileImagesRef = storageRef.child("parent_profile/${DateTime.now().millisecondsSinceEpoch}.jpg");
-      final uploadTask = profileImagesRef.putFile(File(imageFile.path));
+      if (_userId.isEmpty) throw Exception('사용자가 인증되지 않았습니다.');
+
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('users')
+          .child(_userId)
+          .child('profile_images')
+          .child('profile_${DateTime.now().millisecondsSinceEpoch}.jpg');
+
+      final uploadTask = storageRef.putFile(File(imageFile.path));
       final snapshot = await uploadTask;
-      final imageUrl = await snapshot.ref.getDownloadURL();
-      return imageUrl;
+
+      return await snapshot.ref.getDownloadURL();
     } catch (e) {
       debugPrint("이미지 업로드 실패: $e");
       return null;

@@ -25,7 +25,6 @@ class _AddClothingPageState extends State<AddClothingPage> {
   final TextEditingController sizeController = TextEditingController();
   final TextEditingController memoController = TextEditingController();
   String selectedCategory = '전체';
-  String selectedSeason = '사계절';
   String selectedColor = '미분류';
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
@@ -36,11 +35,18 @@ class _AddClothingPageState extends State<AddClothingPage> {
   final ClothingAnalyzer _analyzer = ClothingAnalyzer();
 
   final List<Map<String, dynamic>> categories = [
-    {'label': '한벌옷', 'icon': Icons.accessibility_new},
+    {'label': '올인원', 'icon': Icons.accessibility_new},
     {'label': '상의', 'icon': Icons.checkroom},
     {'label': '하의', 'icon': Icons.checkroom},
     {'label': '신발', 'icon': Icons.checkroom},
   ];
+
+  Set<String> selectedSeasons = {}; // 수정된 부분: 여러 계절 선택
+
+  @override
+  void initState() {
+    super.initState();
+  }
 
   Future<ImageSource?> _showImageSourceDialog(BuildContext context) async {
     return showDialog<ImageSource>(
@@ -105,6 +111,8 @@ class _AddClothingPageState extends State<AddClothingPage> {
         setState(() {
           selectedCategory = result['category'];
           selectedColor = result['color'];
+          // 계절 정보 적용
+          selectedSeasons = Set<String>.from(result['seasons'] ?? ['봄']);
           _isAnalyzing = false;
         });
 
@@ -120,9 +128,7 @@ class _AddClothingPageState extends State<AddClothingPage> {
                   children: [
                     Text('카테고리: ${result['category']}'),
                     Text('색상: ${result['color']}'),
-                    SizedBox(height: 8),
-                    Text('AI 설명:'),
-                    Text(result['description']),
+                    Text('계절: ${(result['seasons'] as List<String>).join(", ")}'),
                   ],
                 ),
               ),
@@ -136,7 +142,7 @@ class _AddClothingPageState extends State<AddClothingPage> {
                     setState(() {
                       selectedCategory = result['category'];
                       selectedColor = result['color'];
-                      memoController.text = result['memo'] ?? '';  // 메모 필드에 설명 추가
+                      selectedSeasons = Set<String>.from(result['seasons'] ?? ['봄']);
                     });
                     Navigator.pop(context);
                   },
@@ -269,7 +275,7 @@ class _AddClothingPageState extends State<AddClothingPage> {
           'name': nameController.text,
           'size': sizeController.text,
           'category': selectedCategory,
-          'season': selectedSeason,
+          'season': selectedSeasons.toList(), // 수정된 부분: 선택된 계절 저장
           'color': selectedColor,
           'memo': memoController.text,
           'imageUrl': imageUrl,
@@ -287,312 +293,334 @@ class _AddClothingPageState extends State<AddClothingPage> {
       );
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFFDF6F0),
+      appBar: AppBar(
         backgroundColor: const Color(0xFFFDF6F0),
-        appBar: AppBar(
-          backgroundColor: const Color(0xFFFDF6F0),
-          elevation: 0,
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: Colors.black),
-            onPressed: () => Navigator.pop(context),
-          ),
-          title: Text(
-            '${widget.childInfo['childName']}의 옷 추가',
-            style: TextStyle(
-              color: Colors.black,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          '${widget.childInfo['childName']}의 옷 추가',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
           ),
         ),
-        body: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Center(
-            child: Stack(
-            children: [
-              GestureDetector(
-              onTap: _pickImage,
-              child: Container(
-                width: 150,
-                height: 150,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.1),
-                      blurRadius: 10,
-                      spreadRadius: 1,
-                    ),
-                  ],
-                ),
-                child: _imageFile != null
-                    ? ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: Image.file(
-                    _imageFile!,
-                    fit: BoxFit.cover,
-                  ),
-                )
-                    : Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.add_a_photo,
-                        size: 40, color: Colors.grey),
-                    SizedBox(height: 8),
-                    Text(
-                      '사진 가져오기',
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 14,
+              child: Stack(
+                children: [
+                  GestureDetector(
+                    onTap: _pickImage,
+                    child: Container(
+                      width: 150,
+                      height: 150,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.1),
+                            blurRadius: 10,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                      child: _imageFile != null
+                          ? ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: Image.file(
+                          _imageFile!,
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                          : Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.add_a_photo, size: 40, color: Colors.grey),
+                          SizedBox(height: 8),
+                          Text(
+                            '사진 가져오기',
+                            style: TextStyle(
+                              color: Colors.grey,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
+                  ),
+                  if (_isAnalyzing)
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.5),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              CircularProgressIndicator(color: Colors.white),
+                              SizedBox(height: 8),
+                              Text(
+                                'AI 분석중...',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            SizedBox(height: 40),
+
+            Text(
+              '카테고리',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 16),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: categories.map((category) {
+                  bool isSelected = selectedCategory == category['label'];
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: InkWell(
+                      onTap: () {
+                        setState(() {
+                          selectedCategory = category['label'];
+                        });
+                      },
+                      child: Container(
+                        width: 75,
+                        height: 75,
+                        decoration: BoxDecoration(
+                          color: isSelected ? Colors.blue[50] : Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSelected ? Colors.blue : Colors.grey[300]!,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              category['icon'],
+                              size: 32,
+                              color: isSelected ? Colors.blue : Colors.grey[600],
+                            ),
+                            SizedBox(height: 6),
+                            Text(
+                              category['label'],
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: isSelected ? Colors.blue : Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            SizedBox(height: 40),
+
+            Text(
+              '이름',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 8),
+            TextField(
+              controller: nameController,
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                hintText: '옷 이름을 입력하세요',
+              ),
+            ),
+            SizedBox(height: 24),
+
+            Text(
+              '사이즈',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 8),
+            TextField(
+              controller: sizeController,
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                hintText: '사이즈를 입력하세요',
+              ),
+            ),
+            SizedBox(height: 24),
+
+            Text(
+              '계절',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: ['봄', '여름', '가을', '겨울', '사계절'].map((season) {
+                bool isSelected = selectedSeasons.contains(season);
+
+                return ChoiceChip(
+                  label: Text(season),
+                  selected: isSelected,
+                  onSelected: (bool selected) {
+                    setState(() {
+                      if (season == '사계절') {
+                        // '사계절'을 선택하면 모든 계절을 추가
+                        if (selected) {
+                          selectedSeasons.addAll(['봄', '여름', '가을', '겨울', '사계절']);
+                        } else {
+                          // '사계절'을 취소하면 모든 계절을 제거
+                          selectedSeasons.removeAll(['봄', '여름', '가을', '겨울', '사계절']);
+                        }
+                      } else {
+                        // '사계절'이 아닌 다른 계절을 선택/취소
+                        if (selected) {
+                          selectedSeasons.add(season);
+                        } else {
+                          selectedSeasons.remove(season);
+                        }
+
+                        // 봄, 여름, 가을, 겨울 4개가 모두 선택되면 '사계절'도 자동 선택
+                        if (selectedSeasons.containsAll(['봄', '여름', '가을', '겨울'])) {
+                          selectedSeasons.add('사계절');
+                        } else {
+                          // 4개 계절 중 하나라도 선택 취소하면 '사계절' 해제
+                          selectedSeasons.remove('사계절');
+                        }
+                      }
+                    });
+                  },
+                );
+              }).toList(),
+            ),
+
+            SizedBox(height: 24),
+
+            Text(
+              '색상',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 8),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildColorChoice('흰색', Colors.white),
+                  _buildColorChoice('검정', Colors.black),
+                  _buildColorChoice('회색', Colors.grey),
+                  _buildColorChoice('빨강', Colors.red),
+                  _buildColorChoice('분홍', Colors.pink),
+                  _buildColorChoice('주황', Colors.orange),
+                  _buildColorChoice('노랑', Colors.yellow),
+                  _buildColorChoice('초록', Colors.green),
+                  _buildColorChoice('파랑', Colors.blue),
+                  _buildColorChoice('남색', Colors.indigo),
+                  _buildColorChoice('보라', Colors.purple),
+                  _buildColorChoice('갈색', Colors.brown),
+                ],
+              ),
+            ),
+            SizedBox(height: 24),
+
+            Text(
+              '메모',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 8),
+            TextField(
+              controller: memoController,
+              maxLines: 3,
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                hintText: '메모를 입력하세요',
+              ),
+            ),
+            SizedBox(height: 40),
+
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: _isUploading ? null : () => _saveClothing(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFFFF9B9B),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: _isUploading
+                    ? CircularProgressIndicator(color: Colors.white)
+                    : Text(
+                  '등록',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),
-            if (_isAnalyzing)
-        Positioned.fill(
-    child: Container(
-    decoration: BoxDecoration(
-    color: Colors.black.withOpacity(0.5),
-    borderRadius: BorderRadius.circular(20),
-    ),
-    child: Center(
-    child: Column(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-    CircularProgressIndicator(color: Colors.white),
-    SizedBox(height: 8),
-    Text(
-    'AI 분석중...',
-    style: TextStyle(color: Colors.white),
-    ),
-    ],
-    ),
-    ),
-    ),
-    ),
-    ],
-    ),
-    ),
-    SizedBox(height: 40),
-
-    Text(
-    '카테고리',
-    style: TextStyle(
-    fontSize: 16,
-    fontWeight: FontWeight.bold,
-    ),
-    ),
-    SizedBox(height: 16),
-    SingleChildScrollView(
-    scrollDirection: Axis.horizontal,
-    child: Row(
-    children: categories.map((category) {
-    bool isSelected = selectedCategory == category['label'];
-    return Padding(
-    padding: const EdgeInsets.only(right: 12),
-    child: InkWell(
-    onTap: () {
-    setState(() {
-    selectedCategory = category['label'];
-    });
-    },
-    child: Container(
-    width: 75,
-    height: 75,
-    decoration: BoxDecoration(
-    color: isSelected ? Colors.blue[50] : Colors.white,
-    borderRadius: BorderRadius.circular(12),
-    border: Border.all(
-    color: isSelected ? Colors.blue : Colors.grey[300]!,
-    ),
-    ),
-    child: Column(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-    Icon(
-    category['icon'],
-    size: 32,
-    color: isSelected ? Colors.blue : Colors.grey[600],
-    ),
-    SizedBox(height: 6),
-    Text(
-    category['label'],
-    style: TextStyle(
-    fontSize: 14,
-    color: isSelected ? Colors.blue : Colors.grey[600],
-    ),
-    ),
-    ],
-    ),
-    ),
-    ),
-    );
-    }).toList(),
-    ),
-    ),
-    SizedBox(height: 40),
-
-    Text(
-    '이름',
-    style: TextStyle(
-    fontSize: 16,
-    fontWeight: FontWeight.bold,
-    ),
-    ),
-    SizedBox(height: 8),
-    TextField(
-    controller: nameController,
-    decoration: InputDecoration(
-    filled: true,
-    fillColor: Colors.white,
-    border: OutlineInputBorder(
-    borderRadius: BorderRadius.circular(12),
-    borderSide: BorderSide.none,
-    ),
-    hintText: '옷 이름을 입력하세요',
-    ),
-    ),
-    SizedBox(height: 24),
-
-    Text(
-    '사이즈',
-    style: TextStyle(
-    fontSize: 16,
-    fontWeight: FontWeight.bold,
-    ),
-    ),
-    SizedBox(height: 8),
-    TextField(
-    controller: sizeController,
-    decoration: InputDecoration(
-    filled: true,
-    fillColor: Colors.white,
-    border: OutlineInputBorder(
-    borderRadius: BorderRadius.circular(12),
-    borderSide: BorderSide.none,
-    ),
-    hintText: '사이즈를 입력하세요',
-    ),
-    ),
-    SizedBox(height: 24),
-                Text(
-                  '계절',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 8),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: ['봄', '여름', '가을', '겨울', '사계절'].map((season) {
-                      bool isSelected = selectedSeason == season;
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: ChoiceChip(
-                          label: Text(season),
-                          selected: isSelected,
-                          onSelected: (bool selected) {
-                            setState(() {
-                              selectedSeason = selected ? season : '사계절';
-                            });
-                          },
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-                SizedBox(height: 24),
-
-                Text(
-                  '색상',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 8),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _buildColorChoice('흰색', Colors.white),
-                      _buildColorChoice('검정', Colors.black),
-                      _buildColorChoice('회색', Colors.grey),
-                      _buildColorChoice('빨강', Colors.red),
-                      _buildColorChoice('분홍', Colors.pink),
-                      _buildColorChoice('주황', Colors.orange),
-                      _buildColorChoice('노랑', Colors.yellow),
-                      _buildColorChoice('초록', Colors.green),
-                      _buildColorChoice('파랑', Colors.blue),
-                      _buildColorChoice('남색', Colors.indigo),
-                      _buildColorChoice('보라', Colors.purple),
-                      _buildColorChoice('갈색', Colors.brown),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 24),
-
-                Text(
-                  '메모',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 8),
-                TextField(
-                  controller: memoController,
-                  maxLines: 3,
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    hintText: '메모를 입력하세요',
-                  ),
-                ),
-                SizedBox(height: 40),
-
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: _isUploading ? null : () => _saveClothing(),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFFFF9B9B),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: _isUploading
-                        ? CircularProgressIndicator(color: Colors.white)
-                        : Text(
-                      '등록',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          ],
         ),
+      ),
     );
   }
+
   Widget _buildColorChoice(String colorName, Color color) {
     bool isSelected = selectedColor == colorName;
     return Padding(
