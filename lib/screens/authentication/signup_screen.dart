@@ -71,22 +71,44 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
   Future<String?> _uploadImageToFirebase(XFile imageFile) async {
     try {
-      if (_userId.isEmpty) throw Exception('사용자가 인증되지 않았습니다.');
+      // 현재 사용자 ID 확인
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception('사용자가 인증되지 않았습니다.');
+      final userId = user.uid;
 
+      // Storage 참조 생성
       final storageRef = FirebaseStorage.instance
           .ref()
           .child('users')
-          .child(_userId)
-          .child('profile_images')
+          .child(userId)
+          .child('parent_profile_images')
           .child('profile_${DateTime.now().millisecondsSinceEpoch}.jpg');
 
-      final uploadTask = storageRef.putFile(File(imageFile.path));
-      final snapshot = await uploadTask;
+      // 메타데이터 설정
+      final metadata = SettableMetadata(
+        contentType: 'image/jpeg',
+        customMetadata: {
+          'uploaded_at': DateTime.now().toIso8601String(),
+          'purpose': 'profile_image'
+        },
+      );
 
-      return await snapshot.ref.getDownloadURL();
-    } catch (e) {
-      debugPrint("이미지 업로드 실패: $e");
+      // 이미지 업로드
+      final uploadTask = await storageRef.putFile(
+        File(imageFile.path),
+        metadata,
+      );
+
+      // 업로드 성공 시 다운로드 URL 반환
+      if (uploadTask.state == TaskState.success) {
+        final downloadUrl = await storageRef.getDownloadURL();
+        return downloadUrl;
+      }
+
       return null;
+    } catch (e) {
+      debugPrint('프로필 이미지 업로드 실패: $e');
+      rethrow; // 에러를 상위로 전달하여 적절한 에러 처리가 가능하도록 함
     }
   }
 
@@ -102,10 +124,14 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final id = _idController.text;
+      // 현재 인증된 사용자 확인
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        throw Exception('사용자가 인증되지 않았습니다.');
+      }
 
-      // ID 중복 확인을 먼저 수행
-      final isDuplicate = await isIdDuplicated(id);
+      // ID 중복 확인
+      final isDuplicate = await isIdDuplicated(_idController.text);
       if (isDuplicate) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -115,19 +141,28 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
             ),
           );
         }
-        setState(() => _isLoading = false);
         return;
       }
 
-      // 현재 인증된 사용자 확인
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        throw Exception('사용자가 인증되지 않았습니다.');
-      }
-
+      // 프로필 이미지 업로드
       String? profileImageUrl;
       if (_profileImage != null) {
-        profileImageUrl = await _uploadImageToFirebase(_profileImage!);
+        try {
+          profileImageUrl = await _uploadImageToFirebase(_profileImage!);
+          if (profileImageUrl == null) {
+            throw Exception('이미지 업로드에 실패했습니다.');
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('프로필 이미지 업로드 실패: ${e.toString()}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          // 이미지 업로드 실패 시에도 계정 생성은 진행
+        }
       }
 
       // 사용자 정보 저장
@@ -145,7 +180,6 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       }
     } catch (e) {
       if (mounted) {
-        // 구체적인 오류 메시지 표시
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('회원가입 중 오류가 발생했습니다: ${e.toString()}'),
@@ -154,7 +188,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
         );
       }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
