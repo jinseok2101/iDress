@@ -46,15 +46,19 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
       throw Exception('아이의 전신 이미지가 없습니다.');
     }
 
+    bool hasTopImage = widget.topImage != null || widget.topImageUrl != null;
+    bool hasBottomImage = widget.bottomImage != null || widget.bottomImageUrl != null;
+
     if (widget.clothType == '상의+하의') {
-      if (widget.topImage == null || widget.bottomImage == null) {
+      if (!hasTopImage || !hasBottomImage) {
         throw Exception('상의와 하의 이미지를 모두 업로드해야 합니다.');
       }
     } else {
-      if (widget.topImage == null && widget.bottomImage == null) {
+      if (!hasTopImage && !hasBottomImage) {
         throw Exception('상의 또는 하의 이미지를 업로드해야 합니다.');
       }
     }
+
 
     final url = 'http://34.47.104.167/try-on';
     var request = http.MultipartRequest('POST', Uri.parse(url));
@@ -70,11 +74,23 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
         final fullOutfitUrl = 'http://34.47.104.167/try-on-full-outfit';
         var fullRequest = http.MultipartRequest('POST', Uri.parse(fullOutfitUrl));
 
-        fullRequest.files.addAll([
-          await http.MultipartFile.fromPath('human_image', humanImagePath),
-          await http.MultipartFile.fromPath('top_image', widget.topImage.path),
-          await http.MultipartFile.fromPath('bottom_image', widget.bottomImage.path)
-        ]);
+        fullRequest.files.add(await http.MultipartFile.fromPath('human_image', humanImagePath));
+
+        // 상의 이미지 처리
+        if (widget.topImage != null) {
+          fullRequest.files.add(await http.MultipartFile.fromPath('top_image', widget.topImage.path));
+        } else if (widget.topImageUrl != null) {
+          final topImagePath = await _downloadImage(widget.topImageUrl!);
+          fullRequest.files.add(await http.MultipartFile.fromPath('top_image', topImagePath));
+        }
+
+        // 하의 이미지 처리
+        if (widget.bottomImage != null) {
+          fullRequest.files.add(await http.MultipartFile.fromPath('bottom_image', widget.bottomImage.path));
+        } else if (widget.bottomImageUrl != null) {
+          final bottomImagePath = await _downloadImage(widget.bottomImageUrl!);
+          fullRequest.files.add(await http.MultipartFile.fromPath('bottom_image', bottomImagePath));
+        }
 
         final response = await fullRequest.send();
         print('응답 코드: ${response.statusCode}');
@@ -84,10 +100,21 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
         await response.stream.pipe(tempFile.openWrite());
 
       } else {
-        request.files.add(await http.MultipartFile.fromPath(
-            'garment_image',
-            widget.topImage?.path ?? widget.bottomImage.path
-        ));
+        // 단일 의류 처리
+        String? imagePath;
+        if (widget.topImage != null) {
+          imagePath = widget.topImage.path;
+        } else if (widget.bottomImage != null) {
+          imagePath = widget.bottomImage.path;
+        } else if (widget.topImageUrl != null) {
+          imagePath = await _downloadImage(widget.topImageUrl!);
+        } else if (widget.bottomImageUrl != null) {
+          imagePath = await _downloadImage(widget.bottomImageUrl!);
+        }
+
+        if (imagePath != null) {
+          request.files.add(await http.MultipartFile.fromPath('garment_image', imagePath));
+        }
 
         String serverClothType = widget.clothType == '상의' ? 'upper_body' :
         widget.clothType == '하의' ? 'lower_body' :

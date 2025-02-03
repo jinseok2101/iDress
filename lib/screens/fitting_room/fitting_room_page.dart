@@ -454,8 +454,20 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
       ),
       child: InkWell(
         onTap: () {
-          if ((topImage == null && bottomImage == null) &&
-              (topImageUrl == null && bottomImageUrl == null)) {
+          bool hasTopImage = topImage != null || topImageUrl != null;
+          bool hasBottomImage = bottomImage != null || bottomImageUrl != null;
+
+          if (selectedOption == '상의+하의' && (!hasTopImage || !hasBottomImage)) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('상의와 하의를 모두 선택해주세요'),
+                duration: Duration(seconds: 2),
+              ),
+            );
+            return;
+          }
+
+          if (selectedOption != '상의+하의' && !hasTopImage && !hasBottomImage) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('최소한 하나의 의류를 선택해주세요'),
@@ -472,6 +484,8 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
                 childInfo: widget.childInfo,
                 topImage: topImage,
                 bottomImage: bottomImage,
+                topImageUrl: topImageUrl,
+                bottomImageUrl: bottomImageUrl,
                 isOnepiece: selectedOption == '올인원',
                 isFromCloset: topImageUrl != null || bottomImageUrl != null,
                 clothType: selectedOption,
