@@ -9,6 +9,8 @@ class FittingLoadingPage extends StatefulWidget {
   final Map<String, dynamic> childInfo;
   final dynamic topImage;
   final dynamic bottomImage;
+  final String? topImageUrl;    // 추가
+  final String? bottomImageUrl;
   final bool isOnepiece;
   final bool isFromCloset;
   final String clothType;
@@ -18,6 +20,8 @@ class FittingLoadingPage extends StatefulWidget {
     required this.childInfo,
     this.topImage,
     this.bottomImage,
+    this.topImageUrl,    // 추가
+    this.bottomImageUrl,
     required this.isOnepiece,
     required this.isFromCloset,
     required this.clothType,

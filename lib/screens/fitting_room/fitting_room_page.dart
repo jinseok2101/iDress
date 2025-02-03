@@ -6,6 +6,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'fittingroom/fitting_loading_page.dart';
 import 'fittingroom/fitting_history_page.dart';
+import 'package:last3/screens/closet/closet_page.dart';
 
 class FittingRoomPage extends StatefulWidget {
   final Map<String, dynamic> childInfo;
@@ -22,77 +23,154 @@ class FittingRoomPage extends StatefulWidget {
 }
 
 class _FittingRoomPageState extends State<FittingRoomPage> {
+  String? topImageUrl;     // 추가
+  String? bottomImageUrl;  // 추가
   File? topImage;
   File? bottomImage;
   final ImagePicker _picker = ImagePicker();
   final FirebaseStorage _storage = FirebaseStorage.instance;
   final String _userId = FirebaseAuth.instance.currentUser?.uid ?? '';
   bool _isUploading = false;
+  String? selectedClothingUrl;
   String selectedOption = '상의'; // 콤보박스 기본값
 
-  DatabaseReference get _clothingRef =>
-      FirebaseDatabase.instance
-          .ref()
-          .child('users')
-          .child(_userId)
-          .child('children')
-          .child(widget.childInfo['childId'])
-          .child('clothing');
-
-  Reference get _storageRef =>
-      FirebaseStorage.instance
-          .ref()
-          .child('users')
-          .child(_userId)
-          .child('children')
-          .child(widget.childInfo['childId'])
-          .child('clothing');
+  Future<(ImageSource?, bool)?> _showImageSourceDialog(BuildContext context) async {
+    return showDialog<(ImageSource?, bool)>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('이미지 선택'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                GestureDetector(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      children: [
+                        Icon(Icons.photo_library),
+                        SizedBox(width: 10),
+                        Text('갤러리에서 선택'),
+                      ],
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.of(context).pop((ImageSource.gallery, false));
+                  },
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Divider(),
+                ),
+                GestureDetector(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      children: [
+                        Icon(Icons.photo_camera),
+                        SizedBox(width: 10),
+                        Text('카메라로 촬영'),
+                      ],
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.of(context).pop((ImageSource.camera, false));
+                  },
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Divider(),
+                ),
+                GestureDetector(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      children: [
+                        Icon(Icons.checkroom),
+                        SizedBox(width: 10),
+                        Text('옷장에서 선택'),
+                      ],
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.of(context).pop((null, true));
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   Future<void> _pickImage(String type) async {
     try {
-      // 이미 이미지가 있고, 단일 이미지 옵션일 경우 더 이상 업로드 불가
-      if ((topImage != null || bottomImage != null) &&
-          (selectedOption == '상의' || selectedOption == '하의' || selectedOption == '한벌옷')) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('이미 이미지가 선택되었습니다')),
-        );
-        return;
-      }
+      final result = await _showImageSourceDialog(context);
 
-      final XFile? pickedFile = await _picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        imageQuality: 85,
-      );
+      if (result != null) {
+        final (source, fromCloset) = result;
 
-      if (pickedFile != null) {
-        setState(() {
-          switch (selectedOption) {
-            case '상의':
-              topImage = File(pickedFile.path);
-              bottomImage = null;
-              break;
-            case '하의':
-              topImage = null;
-              bottomImage = File(pickedFile.path);
-              break;
-            case '상의+하의':
-              if (topImage == null) {
+        if (fromCloset) {
+          // 옷장에서 선택하는 경우
+          String allowedCategory;
+          if (selectedOption == '상의') {
+            allowedCategory = '상의';
+          } else if (selectedOption == '하의') {
+            allowedCategory = '하의';
+          } else if (selectedOption == '올인원') {
+            allowedCategory = '올인원';
+          } else if (selectedOption == '상의+하의') {
+            allowedCategory = type == 'top' ? '상의' : '하의';
+          } else {
+            allowedCategory = '전체';
+          }
+
+          final selectedClothing = await Navigator.push<Map<String, dynamic>>(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ClosetPage(
+                childInfo: widget.childInfo,
+                selectionMode: true,
+                allowedCategory: allowedCategory,
+              ),
+            ),
+          );
+
+          if (selectedClothing != null) {
+            setState(() {
+              String imageUrl = selectedClothing['imageUrl'] as String;
+              if (type == 'top' || selectedOption == '올인원') {
+                topImageUrl = imageUrl;
+                topImage = null;
+              } else if (type == 'bottom') {
+                bottomImageUrl = imageUrl;
+                bottomImage = null;
+              }
+            });
+          }
+        } else if (source != null) {
+          // 갤러리나 카메라에서 선택하는 경우
+          final XFile? pickedFile = await _picker.pickImage(
+            source: source,
+            maxWidth: 1024,
+            maxHeight: 1024,
+            imageQuality: 85,
+          );
+
+          if (pickedFile != null) {
+            setState(() {
+              if (type == 'top' || selectedOption == '올인원') {
                 topImage = File(pickedFile.path);
-              } else if (bottomImage == null) {
+              } else if (type == 'bottom') {
                 bottomImage = File(pickedFile.path);
               }
-              break;
-            case '한벌옷':
-              topImage = File(pickedFile.path);
-              bottomImage = null;
-              break;
+            });
           }
-        });
+        }
       }
     } catch (e) {
-      debugPrint('이미지 선택 오류: $e');
+      print('Error picking image: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('이미지 선택 중 오류가 발생했습니다')),
       );
@@ -147,7 +225,7 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
                   Expanded(
                     flex: 4,
                     child: AspectRatio(
-                      aspectRatio: 1/2,  // 세로로 긴 1:2 비율 설정
+                      aspectRatio: 1/2,
                       child: Container(
                         decoration: BoxDecoration(
                           border: Border.all(color: Colors.grey[300]!),
@@ -200,7 +278,7 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
                             value: selectedOption,
                             isExpanded: true,
                             underline: Container(),
-                            items: ['상의', '하의', '상의+하의', '한벌옷']
+                            items: ['상의', '하의', '상의+하의', '올인원']
                                 .map((String value) {
                               return DropdownMenuItem<String>(
                                 value: value,
@@ -213,8 +291,7 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
                             onChanged: (String? newValue) {
                               setState(() {
                                 selectedOption = newValue!;
-                                topImage = null;
-                                bottomImage = null;
+                                selectedClothingUrl = null;  // 옵션 변경시 선택된 옷 초기화
                               });
                             },
                           ),
@@ -222,198 +299,11 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
                         SizedBox(height: 16),
                         // 업로드 영역
                         if (selectedOption == '상의+하의') ...[
-                          // 상의 업로드 버튼 또는 미리보기
-                          Container(
-                            width: double.infinity,
-                            height: 180,
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey[300]!),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: topImage != null
-                                ? Stack(
-                              children: [
-                                Positioned.fill(
-                                  child: Image.file(
-                                    topImage!,
-                                    fit: BoxFit.contain,
-                                  ),
-                                ),
-                                Positioned(
-                                  top: 8,
-                                  right: 8,
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        topImage = null;
-                                      });
-                                    },
-                                    child: Container(
-                                      padding: EdgeInsets.all(4),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: Colors.grey[300]!),
-                                      ),
-                                      child: Icon(
-                                        Icons.close,
-                                        size: 20,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            )
-                                : InkWell(
-                              onTap: () => _pickImage(selectedOption),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.file_upload_outlined,
-                                      size: 50,
-                                      color: Colors.grey[600]),
-                                  SizedBox(height: 12),
-                                  Text(
-                                    '상의 업로드',
-                                    style: TextStyle(
-                                      color: Colors.grey[600],
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
+                          _buildUploadContainer('top'),
                           SizedBox(height: 16),
-                          // 하의 업로드 버튼 또는 미리보기
-                          Container(
-                            width: double.infinity,
-                            height: 180,
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey[300]!),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: bottomImage != null
-                                ? Stack(
-                              children: [
-                                Positioned.fill(
-                                  child: Image.file(
-                                    bottomImage!,
-                                    fit: BoxFit.contain,
-                                  ),
-                                ),
-                                Positioned(
-                                  top: 8,
-                                  right: 8,
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        bottomImage = null;
-                                      });
-                                    },
-                                    child: Container(
-                                      padding: EdgeInsets.all(4),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: Colors.grey[300]!),
-                                      ),
-                                      child: Icon(
-                                        Icons.close,
-                                        size: 20,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            )
-                                : InkWell(
-                              onTap: () => _pickImage(selectedOption),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.file_upload_outlined,
-                                      size: 50,
-                                      color: Colors.grey[600]),
-                                  SizedBox(height: 12),
-                                  Text(
-                                    '하의 업로드',
-                                    style: TextStyle(
-                                      color: Colors.grey[600],
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
+                          _buildUploadContainer('bottom'),
                         ] else ...[
-                          // 단일 이미지 업로드 버튼 또는 미리보기
-                          Container(
-                            width: double.infinity,
-                            height: 180,
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey[300]!),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: (topImage != null || bottomImage != null)
-                                ? Stack(
-                              children: [
-                                Positioned.fill(
-                                  child: Image.file(
-                                    topImage ?? bottomImage!,
-                                    fit: BoxFit.contain,
-                                  ),
-                                ),
-                                Positioned(
-                                  top: 8,
-                                  right: 8,
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        topImage = null;
-                                        bottomImage = null;
-                                      });
-                                    },
-                                    child: Container(
-                                      padding: EdgeInsets.all(4),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: Colors.grey[300]!),
-                                      ),
-                                      child: Icon(
-                                        Icons.close,
-                                        size: 20,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            )
-                                : InkWell(
-                              onTap: () => _pickImage(selectedOption),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.file_upload_outlined,
-                                      size: 50,
-                                      color: Colors.grey[600]),
-                                  SizedBox(height: 12),
-                                  Text(
-                                    '${selectedOption == "상의" ? "상의" : selectedOption == "하의" ? "하의" : "한벌옷"} 업로드',
-                                    style: TextStyle(
-                                      color: Colors.grey[600],
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
+                          _buildUploadContainer(selectedOption == '하의' ? 'bottom' : 'top'),
                         ],
                       ],
                     ),
@@ -428,6 +318,121 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
             child: _buildFittingButton(),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildUploadContainer(String type) {
+    File? image = type == 'top' ? topImage : bottomImage;
+    String? imageUrl = type == 'top' ? topImageUrl : bottomImageUrl;
+    String label = type == 'top' ? '상의' : '하의';
+    if (selectedOption == '올인원') label = '올인원';
+
+    return Container(
+      width: double.infinity,
+      height: 180,
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey[300]!),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: image != null
+          ? Stack(
+        children: [
+          Positioned.fill(
+            child: Image.file(
+              image,
+              fit: BoxFit.contain,
+            ),
+          ),
+          Positioned(
+            top: 8,
+            right: 8,
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  if (type == 'top') {
+                    topImage = null;
+                    topImageUrl = null;  // URL도 함께 초기화
+                  } else {
+                    bottomImage = null;
+                    bottomImageUrl = null;  // URL도 함께 초기화
+                  }
+                });
+              },
+              child: Container(
+                padding: EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Icon(
+                  Icons.close,
+                  size: 20,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ),
+          ),
+        ],
+      )
+          : imageUrl != null  // 옷장에서 선택된 이미지가 있는 경우
+          ? Stack(
+        children: [
+          Positioned.fill(
+            child: Image.network(
+              imageUrl,
+              fit: BoxFit.contain,
+            ),
+          ),
+          Positioned(
+            top: 8,
+            right: 8,
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  if (type == 'top') {
+                    topImageUrl = null;
+                  } else {
+                    bottomImageUrl = null;
+                  }
+                });
+              },
+              child: Container(
+                padding: EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Icon(
+                  Icons.close,
+                  size: 20,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ),
+          ),
+        ],
+      )
+          : InkWell(
+        onTap: () => _pickImage(type),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.file_upload_outlined,
+                size: 50,
+                color: Colors.grey[600]),
+            SizedBox(height: 12),
+            Text(
+              '$label 업로드',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -449,7 +454,8 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
       ),
       child: InkWell(
         onTap: () {
-          if (topImage == null && bottomImage == null) {
+          if ((topImage == null && bottomImage == null) &&
+              (topImageUrl == null && bottomImageUrl == null)) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('최소한 하나의 의류를 선택해주세요'),
@@ -463,12 +469,12 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
             context,
             MaterialPageRoute(
               builder: (context) => FittingLoadingPage(
-                  childInfo: widget.childInfo,
-                  topImage: topImage,
-                  bottomImage: bottomImage,
-                  isOnepiece: selectedOption == '한벌옷',
-                  isFromCloset: false,
-                  clothType: selectedOption
+                childInfo: widget.childInfo,
+                topImage: topImage,
+                bottomImage: bottomImage,
+                isOnepiece: selectedOption == '올인원',
+                isFromCloset: topImageUrl != null || bottomImageUrl != null,
+                clothType: selectedOption,
               ),
             ),
           );
