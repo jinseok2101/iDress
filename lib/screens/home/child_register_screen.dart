@@ -137,10 +137,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
       final profileImageUrl = await profileUpload.ref.getDownloadURL();
       final fullBodyImageUrl = await fullBodyUpload.ref.getDownloadURL();
 
+      String formattedBirthdate = DateFormat('yyyy-MM-dd').format(_selectedBirthdate!);
+
       await childRef.set({
         'childId': childId,
         'name': _nameController.text,
-        'birthdate': _selectedBirthdate?.toIso8601String(),
+      'birthdate': formattedBirthdate,
         'gender': _selectedGender,
         'height': _heightController.text,
         'weight': _weightController.text,
@@ -270,7 +272,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ElevatedButton(
                 onPressed: _isUploading ? null : _registerChild,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4A90E2),
+                  backgroundColor: const Color(0xFF7165D6),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -280,7 +282,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ? const CircularProgressIndicator(color: Colors.white)
                     : const Text(
                   '등록하기',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
                 ),
               ),
             ],
