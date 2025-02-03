@@ -51,8 +51,8 @@ class FittingHistoryDetailPage extends StatelessWidget {
               ),
             ),
 
-            // 이미지 섹션
-            if (category == 'set' && historyData['onepieceUrl'] != null)
+            // 처리된 이미지 (AI 피팅 결과)
+            if (historyData['processedImageUrl'] != null)
               Container(
                 width: double.infinity,
                 height: MediaQuery.of(context).size.height * 0.5,
@@ -60,63 +60,77 @@ class FittingHistoryDetailPage extends StatelessWidget {
                   minScale: 0.5,
                   maxScale: 3.0,
                   child: Image.network(
-                    historyData['onepieceUrl'],
+                    historyData['processedImageUrl'],
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+
+            // 원본 이미지들
+            Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                '원본 이미지',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+
+            // 원본 이미지 표시
+            if (category == 'set' && historyData['originalImageUrl'] != null)
+              Container(
+                width: double.infinity,
+                height: MediaQuery.of(context).size.height * 0.3,
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: InteractiveViewer(
+                  minScale: 0.5,
+                  maxScale: 3.0,
+                  child: Image.network(
+                    historyData['originalImageUrl'],
                     fit: BoxFit.contain,
                   ),
                 ),
               )
             else if (category == 'top_bottom')
-              Column(
-                children: [
-                  if (historyData['topImageUrl'] != null)
-                    Container(
-                      width: double.infinity,
-                      height: MediaQuery.of(context).size.height * 0.3,
-                      child: InteractiveViewer(
-                        minScale: 0.5,
-                        maxScale: 3.0,
-                        child: Image.network(
-                          historyData['topImageUrl'],
-                          fit: BoxFit.contain,
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    if (historyData['topImageUrl'] != null)
+                      Expanded(
+                        child: Container(
+                          height: MediaQuery.of(context).size.height * 0.2,
+                          child: InteractiveViewer(
+                            minScale: 0.5,
+                            maxScale: 3.0,
+                            child: Image.network(
+                              historyData['topImageUrl'],
+                              fit: BoxFit.contain,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  if (historyData['bottomImageUrl'] != null)
-                    Container(
-                      width: double.infinity,
-                      height: MediaQuery.of(context).size.height * 0.3,
-                      child: InteractiveViewer(
-                        minScale: 0.5,
-                        maxScale: 3.0,
-                        child: Image.network(
-                          historyData['bottomImageUrl'],
-                          fit: BoxFit.contain,
+                    if (historyData['bottomImageUrl'] != null) ...[
+                      SizedBox(width: 16),
+                      Expanded(
+                        child: Container(
+                          height: MediaQuery.of(context).size.height * 0.2,
+                          child: InteractiveViewer(
+                            minScale: 0.5,
+                            maxScale: 3.0,
+                            child: Image.network(
+                              historyData['bottomImageUrl'],
+                              fit: BoxFit.contain,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                ],
+                    ],
+                  ],
+                ),
               ),
-
-            // 추가 정보 섹션
-            Padding(
-              padding: EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '피팅 정보',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 16),
-                  _buildInfoRow('피팅 타입', category == 'set' ? '한벌옷' : '일반 피팅'),
-                  _buildInfoRow('저장 날짜', formattedDate),
-                  // 필요한 경우 더 많은 정보를 추가할 수 있습니다
-                ],
-              ),
-            ),
           ],
         ),
       ),
