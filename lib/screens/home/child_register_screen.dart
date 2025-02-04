@@ -8,6 +8,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path/path.dart' as path;
 import 'package:intl/intl.dart';
+import 'package:omni_datetime_picker/omni_datetime_picker.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({Key? key}) : super(key: key);
@@ -58,28 +59,45 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  void _showDatePicker(BuildContext context) {
-    showModalBottomSheet(
+  void _showDatePicker(BuildContext context) async {
+    DateTime? selectedDate = await showOmniDateTimePicker(
       context: context,
-      builder: (BuildContext builder) {
-        return SizedBox(
-          height: 350,
-          width: 450,
-          child: CupertinoDatePicker(
-            mode: CupertinoDatePickerMode.date,
-            initialDateTime: DateTime.now(),
-            maximumDate: DateTime.now(),
-            minimumYear: DateTime.now().year - 10,
-            maximumYear: DateTime.now().year,
-            onDateTimeChanged: (DateTime newDate) {
-              setState(() {
-                _selectedBirthdate = newDate;
-              });
-            },
+      initialDate: _selectedBirthdate ?? DateTime.now(),
+      firstDate: DateTime(DateTime.now().year - 50),
+      lastDate: DateTime.now(),
+      is24HourMode: false,
+      isShowSeconds: false,
+      minutesInterval: 1,
+      borderRadius: const BorderRadius.all(Radius.circular(16)),
+      constraints: const BoxConstraints(
+        maxWidth: 350,
+        maxHeight: 500,
+      ),
+      type: OmniDateTimePickerType.date,
+      transitionBuilder: (context, anim1, anim2, child) {
+        return FadeTransition(
+          opacity: anim1.drive(
+            Tween(
+              begin: 0,
+              end: 1,
+            ),
           ),
+          child: child,
         );
       },
+      transitionDuration: const Duration(milliseconds: 200),
+      barrierDismissible: true,
+      selectableDayPredicate: (dateTime) {
+        return true;
+      },
+
     );
+
+    if (selectedDate != null) {
+      setState(() {
+        _selectedBirthdate = selectedDate;
+      });
+    }
   }
 
   Future<void> _registerChild() async {
@@ -305,7 +323,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
           const SizedBox(height: 8),
           TextField(
             controller: controller,
-            keyboardType: TextInputType.text,
+
+            keyboardType: label.contains("신장") || label.contains("체중")
+                ? TextInputType.number // 숫자 입력 키보드 설정
+                : TextInputType.text,  // 기본 텍스트 입력
             decoration: InputDecoration(
               hintText: hint,
               filled: true,
@@ -355,6 +376,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
     );
   }
+
 
   Widget _buildDropdownField(
       String label, String hint, List<String> options, ValueChanged<String?> onChanged) {

@@ -13,6 +13,7 @@ import 'package:last3/screens/home/home_screen.dart';
 import 'package:last3/screens/my_page.dart';
 import 'package:last3/screens/home/notice_page.dart';
 import 'package:last3/screens/home/information.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 
 
@@ -51,6 +52,18 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
+
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('ko', 'KR'),
+      ],
+      locale: const Locale('ko', 'KR'),
+
+
       routerConfig: GoRouter(
         initialLocation: initialRoute, // 로그인 상태에 따라 초기 경로 설정
         routes: [

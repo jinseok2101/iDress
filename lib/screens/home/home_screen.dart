@@ -5,6 +5,8 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:giffy_dialog/giffy_dialog.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'package:path/path.dart' as path;
+import 'package:firebase_storage/firebase_storage.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -44,31 +46,39 @@ class _HomeScreenState extends State<HomeScreen> {
             'key': entry.key,
             'name': childData['name'] ?? '',
             'birthdate': childData['birthdate'] ?? '',
-            'gender': childData['gender'] ?? '', // 필드 확인
+            'gender': childData['gender'] ?? '',
             'height': childData['height'] ?? 0.0,
             'weight': childData['weight'] ?? 0.0,
-            'imageUrl': childData['profileImageUrl'] ?? '',
-            'fullBodyImageUrl': childData['fullBodyImageUrl'] ?? '', // 전신사진 URL 추가
+            'imageUrl': childData['profileImageUrl'] ?? '',  // 키 이름 일치시키기
+            'fullBodyImageUrl': childData['fullBodyImageUrl'] ?? '',
           };
         }).toList();
 
-        setState(() {
-          childrenProfiles = profiles.cast<Map<String, dynamic>>();
-          _isLoading = false;
-        });
+        if (mounted) {  // 위젯이 여전히 유효한지 확인
+          setState(() {
+            childrenProfiles = profiles.cast<Map<String, dynamic>>();
+            _isLoading = false;
+          });
+        }
       } else {
         print('No children found for user: ${user.uid}');
+        if (mounted) {
+          setState(() {
+            childrenProfiles = [];
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      print('Error loading profiles: $e');
+      if (mounted) {
         setState(() {
           _isLoading = false;
         });
       }
-    } catch (e) {
-      print('Error loading profiles: $e');
-      setState(() {
-        _isLoading = false;
-      });
     }
   }
+
 
   // 이미지 선택을 위한 함수 추가
   Future<String?> _pickImage(ImageSource source) async {
@@ -76,9 +86,26 @@ class _HomeScreenState extends State<HomeScreen> {
     final XFile? image = await picker.pickImage(source: source);
 
     if (image != null) {
-      // 여기에 Firebase Storage 업로드 로직 추가
-      // 업로드 후 URL 반환
-      return image.path; // 임시로 경로 반환
+      try {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user == null) return null;
+
+        // Firebase Storage에 이미지 업로드
+        final storageRef = FirebaseStorage.instance
+            .ref()
+            .child('users')
+            .child(user.uid)
+            .child('temp_images')
+            .child('image_${DateTime.now().millisecondsSinceEpoch}${path.extension(image.path)}');
+
+        final uploadTask = await storageRef.putFile(File(image.path));
+        final downloadUrl = await uploadTask.ref.getDownloadURL();
+
+        return downloadUrl; // Firebase Storage URL 반환
+      } catch (e) {
+        print('Error uploading image: $e');
+        return null;
+      }
     }
     return null;
   }
@@ -251,23 +278,19 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_selectedProfileIndex == null) return;
     final selectedChild = childrenProfiles[_selectedProfileIndex!];
 
-
+    // 로컬 상태 변수 선언
     String profileImageUrl = selectedChild['imageUrl'] ?? '';
     String fullBodyImageUrl = selectedChild['fullBodyImageUrl'] ?? '';
 
-
-
     showDialog(
       context: context,
-      builder: (context) {
-        // 기존 데이터를 가져와 초기화
+      builder: (BuildContext dialogContext) {
+        // 컨트롤러들을 dialog builder 내부로 이동
         TextEditingController nameController = TextEditingController(text: selectedChild['name']);
         TextEditingController genderController = TextEditingController(text: selectedChild['gender']);
         TextEditingController birthDateController = TextEditingController(text: selectedChild['birthdate'] ?? '');
         TextEditingController weightController = TextEditingController(text: selectedChild['weight']?.toString() ?? '');
         TextEditingController heightController = TextEditingController(text: selectedChild['height']?.toString() ?? '');
-        TextEditingController profileImageUrlController = TextEditingController(text: selectedChild['imageUrl'] ?? '');
-        TextEditingController fullBodyImageUrlController = TextEditingController(text: selectedChild['fullBodyImageUrl'] ?? '');
 
 
         return StatefulBuilder(
@@ -309,11 +332,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           children: [
                             // 프로필 사진
                             _buildProfileImage(
-                              profileImageUrl,  // 상태 변수 사용
+                              profileImageUrl,
                                   (String newImageUrl) {
-                                setDialogState(() {  // setDialogState 사용
-                                  profileImageUrl = newImageUrl;  // 상태 변수 업데이트
-                                  profileImageUrlController.text = newImageUrl;
+                                setDialogState(() {
+                                  profileImageUrl = newImageUrl;
                                 });
                               },
                             ),
@@ -332,7 +354,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             const SizedBox(height: 30),
 
                             // 키 (수정 가능)
-                            _buildEditableTextField('키 (cm)', heightController,  true),
+                            _buildEditableTextField('신장 (cm)', heightController,  true),
                             const SizedBox(height: 30),
 
                             // 체중 (수정 가능)
@@ -341,11 +363,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
                             // 전신 사진
                             _buildFullBodyImage(
-                              fullBodyImageUrl,  // 상태 변수 사용
+                              fullBodyImageUrl,
                                   (String newImageUrl) {
-                                setDialogState(() {  // setDialogState 사용
-                                  fullBodyImageUrl = newImageUrl;  // 상태 변수 업데이트
-                                  fullBodyImageUrlController.text = newImageUrl;
+                                setDialogState(() {
+                                  fullBodyImageUrl = newImageUrl;
                                 });
                               },
                             ),
@@ -382,26 +403,34 @@ class _HomeScreenState extends State<HomeScreen> {
                               print('Updating child profile with key: $childKey');
                               print('Update data: $updates');
 
-                              // Firebase 레퍼런스 생성
-                              final DatabaseReference childRef = FirebaseDatabase.instance
+                              // Firebase 데이터 업데이트
+                              await FirebaseDatabase.instance
                                   .ref()
                                   .child('users')
                                   .child(user.uid)
                                   .child('children')
-                                  .child(childKey);
-
-                              // 데이터 업데이트
-                              await childRef.update(updates);
-
-                              print('Firebase update successful');
+                                  .child(childKey)
+                                  .update(updates);
 
                               // 로컬 상태 업데이트
                               setState(() {
                                 childrenProfiles[_selectedProfileIndex!] = {
                                   'key': childKey,
-                                  ...updates,
+                                  'name': nameController.text,
+                                  'birthdate': birthDateController.text,
+                                  'gender': selectedChild['gender'],
+                                  'weight': double.tryParse(weightController.text) ?? 0.0,
+                                  'height': double.tryParse(heightController.text) ?? 0.0,
+                                  'imageUrl': profileImageUrl,  // imageUrl 키로 변경
+                                  'fullBodyImageUrl': fullBodyImageUrl,
                                 };
                               });
+
+                              // 다이얼로그 닫기
+                              Navigator.pop(context);
+
+                              // 프로필 목록 새로고침
+                              await _loadChildrenProfiles();
 
                               // 성공 메시지 표시
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -410,13 +439,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                   backgroundColor: Colors.green,
                                 ),
                               );
-
-                              // 프로필 목록 새로고침
-                              await _loadChildrenProfiles();
-
-                              // 다이얼로그 닫기
-                              Navigator.pop(context);
-
                             } catch (e) {
                               print('Error updating profile: $e');
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -488,6 +510,9 @@ class _HomeScreenState extends State<HomeScreen> {
           controller: controller,
           readOnly: !isEditable, // 수정 불가능한 필드는 읽기 전용
           enabled: isEditable, // 클릭 방지
+          keyboardType: label.contains("신장") || label.contains("체중")
+              ? TextInputType.number // 숫자 입력 키보드 설정
+              : TextInputType.text,  // 기본 텍스트 입력
           decoration: InputDecoration(
             filled: true,
             fillColor: isEditable ? Colors.white : Colors.grey.shade300, // 수정 불가능한 필드는 회색 배경

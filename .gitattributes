@@ -1,0 +1,7 @@
+# 자동 CRLF 변환 방지
+* text=auto
+*.c text eol=lf
+*.h text eol=lf
+*.cmake text eol=lf
+*.swift text eol=lf
+*.dart text eol=lf
