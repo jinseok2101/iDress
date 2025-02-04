@@ -113,7 +113,6 @@ class _AddClothingPageState extends State<AddClothingPage> {
         setState(() {
           selectedCategory = result['category'];
           selectedColor = result['color'];
-          // 계절 정보 적용
           selectedSeasons = Set<String>.from(result['seasons'] ?? ['봄']);
           _isAnalyzing = false;
         });
@@ -129,8 +128,20 @@ class _AddClothingPageState extends State<AddClothingPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text('카테고리: ${result['category']}'),
+                    SizedBox(height: 8),
                     Text('색상: ${result['color']}'),
+                    SizedBox(height: 8),
                     Text('계절: ${(result['seasons'] as List<String>).join(", ")}'),
+                    SizedBox(height: 8),
+                    Text('상세 설명:', style: TextStyle(fontWeight: FontWeight.bold)),
+                    SizedBox(height: 4),
+                    Text(
+                      result['memo'] ?? '상세 설명이 없습니다.',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.black87,
+                      ),
+                    ),
                   ],
                 ),
               ),
