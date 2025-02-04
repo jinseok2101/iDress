@@ -39,6 +39,15 @@ class _ClosetPageState extends State<ClosetPage> {
   final List<String> filterTypes = ['카테고리', '계절', '색상'];
   final List<String> seasons = ['전체', '봄', '여름', '가을', '겨울', '사계절'];
 
+  final Map<String, String> categoryImages = {
+    '전체': 'assets/images/categories/free-icon-hanger-69981.png',
+    '올인원': 'assets/images/categories/free-icon-onesie-1012727.png',
+    '상의': 'assets/images/categories/free-icon-shirt-16882503.png',
+    '하의': 'assets/images/categories/free-icon-pants-8190299.png',
+    '신발': 'assets/images/categories/free-icon-shoes-7606033.png',
+  };
+
+
   @override
   void initState() {
     super.initState();
@@ -180,7 +189,7 @@ class _ClosetPageState extends State<ClosetPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        backgroundColor: Colors.white,
+      backgroundColor: Colors.white,
       appBar: widget.selectionMode ? AppBar(
         title: Text('${widget.allowedCategory} 선택'),
         leading: IconButton(
@@ -188,451 +197,451 @@ class _ClosetPageState extends State<ClosetPage> {
           onPressed: () => Navigator.pop(context),
         ),
       ) : null,
-        body: SafeArea(
-            child: Column(
-                children: [
-                if (!widget.selectionMode) ...[
-            SizedBox(height: 24),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Row(
-            children: [
-              Column(
-                children: [
-                  CircleAvatar(
-                    radius: 35,
-                    backgroundImage: _childProfileUrl != null
-                        ? NetworkImage(_childProfileUrl!)
-                        : AssetImage('assets/images/profile.jpg') as ImageProvider,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _childName != null ? '${_childName}의 옷장' : 'OOO의 옷장',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(width: 32),
-              Expanded(
-                child: WeatherWidget(),
-              ),
-            ],
-          ),
-        ),
-        ],
-        SizedBox(height: 40),
-    Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 24.0),
-    child: Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-    Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-    Row(
-    children: filterTypes.map((type) {
-    bool isSelected = selectedFilter == type;
-    return Padding(
-    padding: const EdgeInsets.only(right: 8.0),
-    child: ChoiceChip(
-    label: Text(type),
-    selected: isSelected,
-    onSelected: (bool selected) {
-    setState(() {
-    if (selected) {
-    selectedFilter = type;
-    selectedCategory = '전체';
-    selectedSeasons = {'전체'};
-    selectedColor = '전체';
-    }
-    });
-    },
-    ),
-    );
-    }).toList(),
-    ),
-    if (!widget.selectionMode)
-    TextButton.icon(
-    onPressed: () {
-    setState(() {
-    isSearchVisible = !isSearchVisible;
-    if (!isSearchVisible) {
-    _searchController.clear();
-    }
-    });
-    },
-    icon: Icon(
-    Icons.search,
-    size: 20,
-    color: Colors.grey[600],
-    ),
-    label: Text(
-    '검색',
-    style: TextStyle(
-    fontSize: 14,
-    color: Colors.grey[600],
-    ),
-    ),
-    style: TextButton.styleFrom(
-    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-    ),
-    ),
-    ],
-    ),
-    SizedBox(height: 16),
-    SingleChildScrollView(
-    scrollDirection: Axis.horizontal,
-    child: Row(
-    children: [
-    if (selectedFilter == '카테고리')
-    Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 8.0),
-    child: Row(
-    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-    children: [
-    _buildCategoryButton('전체', Icons.checkroom),
-    SizedBox(width: 16),
-    _buildCategoryButton('올인원', Icons.accessibility_new),
-    SizedBox(width: 16),
-    _buildCategoryButton('상의', Icons.checkroom),
-    SizedBox(width: 16),
-    _buildCategoryButton('하의', Icons.checkroom),
-    SizedBox(width: 16),
-    _buildCategoryButton('신발', Icons.checkroom),
-    ],
-    ),
-    )
-    else if (selectedFilter == '계절')
-    Row(
-    children: seasons.map((season) {
-    bool isSelected = selectedSeasons.contains(season);
-    return Padding(
-    padding: const EdgeInsets.only(right: 8.0),
-    child: FilterChip(
-    label: Text(season),
-    selected: isSelected,
-    onSelected: (bool selected) {
-    setState(() {
-    if (season == '전체') {
-    selectedSeasons.clear();
-    selectedSeasons.add('전체');
-    } else {
-    if (selected) {
-    selectedSeasons.add(season);
-    selectedSeasons.remove('전체');
-    } else {
-    selectedSeasons.remove(season);
-    }
-    if (selectedSeasons.isEmpty) {
-    selectedSeasons.add('전체');
-    }
-    }
-    });
-    },
-    ),
-    );
-    }).toList(),
-    )
-    else if (selectedFilter == '색상')
-    Wrap(
-    spacing: 8,
-    runSpacing: 8,
-    children: [
-    _buildColorBox('전체', Colors.transparent),
-    _buildColorBox('흰색', Colors.white),
-    _buildColorBox('검정', Colors.black),
-    _buildColorBox('빨강', Colors.red),
-    _buildColorBox('주황', Colors.orange),
-    _buildColorBox('노랑', Colors.yellow),
-    _buildColorBox('초록', Colors.green),
-    _buildColorBox('파랑', Colors.blue),
-    _buildColorBox('남색', Colors.indigo),
-    _buildColorBox('보라', Colors.purple),
-    _buildColorBox('회색', Colors.grey),
-    _buildColorBox('분홍', Colors.pink),
-    _buildColorBox('갈색', Colors.brown),
-    ],
-    ),
-    ],
-    ),
-    ),
-    if (isSearchVisible) ...[
-    SizedBox(height: 16),
-    Container(
-    height: 45,
-    decoration: BoxDecoration(
-    color: Colors.grey[100],
-    borderRadius: BorderRadius.circular(8),
-    ),
-    child: TextField(
-    controller: _searchController,
-    decoration: InputDecoration(
-    hintText: '검색어를 입력하세요',
-    hintStyle: TextStyle(
-    color: Colors.grey[500],
-    fontSize: 14,
-    ),
-    prefixIcon: Icon(Icons.search, size: 22),
-    border: InputBorder.none,
-    contentPadding:
-    EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-    suffixIcon: _searchController.text.isNotEmpty
-    ? IconButton(
-    icon: Icon(Icons.clear, size: 20),
-    onPressed: () {
-    setState(() {
-    _searchController.clear();
-    });
-    },
-    )
-        : null,
-    ),
-    onChanged: (value) {
-    setState(() {});
-    },
-    ),
-    ),
-    ],
-    if (!widget.selectionMode)
-    SizedBox(height: 16),
-    if (!widget.selectionMode)
-    Row(
-    mainAxisAlignment: MainAxisAlignment.end,
-    children: [
-    TextButton.icon(
-    onPressed: () {
-    setState(() {
-    isDeleteMode = !isDeleteMode;
-    if (!isDeleteMode) {
-    selectedItems.clear();
-    }
-    });
-    },
-    icon: Icon(
-    isDeleteMode ? Icons.close : Icons.delete_outline,
-    size: 20,
-    color: Colors.grey[600],
-    ),
-    label: Text(
-    isDeleteMode ? '취소' : '삭제',
-    style: TextStyle(
-    fontSize: 14,
-    color: Colors.grey[600],
-    ),
-    ),
-    style: TextButton.styleFrom(
-    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-    ),
-    ),
-    ],
-    ),
-    ],
-    ),
-    ),
-    SizedBox(height: 24),
-    Expanded(
-    child: StreamBuilder<DatabaseEvent>(
-    stream: _clothingRef.onValue,
-    builder: (context, snapshot) {
-    if (snapshot.hasError) {
-    return Center(child: Text('에러가 발생했습니다'));
-    }
-
-    if (!snapshot.hasData || snapshot.data?.snapshot.value == null) {
-    return Center(child: Text('등록된 옷이 없습니다'));
-    }
-
-    Map<dynamic, dynamic> categories =
-    snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
-    List<MapEntry<dynamic, dynamic>> filteredClothing = [];
-
-    categories.forEach((category, clothingItems) {
-      if (clothingItems != null && clothingItems is Map) {
-        clothingItems.forEach((key, value) {
-          if (value is Map) {
-            filteredClothing.add(MapEntry(key, value));
-          }
-        });
-      }
-    });
-
-    // 검색어와 선택된 필터로 필터링 적용
-    if (isSearchVisible && _searchController.text.isNotEmpty) {
-      filteredClothing = filterClothing(filteredClothing, _searchController.text);
-    } else {
-      filteredClothing = filterClothing(filteredClothing, '');
-    }
-
-    if (filteredClothing.isEmpty) {
-      return Center(
-        child: Text(
-          isSearchVisible && _searchController.text.isNotEmpty
-              ? '검색 결과가 없습니다'
-              : '${selectedFilter == '카테고리' ? selectedCategory : selectedFilter == '계절' ? selectedSeasons.join(', ') : selectedColor}에 해당하는 옷이 없습니다',
-          style: TextStyle(
-            color: Colors.grey[600],
-            fontSize: 16,
-          ),
-        ),
-      );
-    }
-
-    return GridView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        mainAxisSpacing: 24,
-        crossAxisSpacing: 24,
-        childAspectRatio: 0.9,
-      ),
-      itemCount: filteredClothing.length,
-      itemBuilder: (context, index) {
-        final MapEntry<dynamic, dynamic> entry = filteredClothing[index];
-        final String itemKey = entry.key;
-        final Map<dynamic, dynamic> itemData = entry.value;
-        bool isSelected = selectedItems.contains(itemKey);
-
-        return Stack(
+      body: SafeArea(
+        child: Column(
           children: [
-            GestureDetector(
-              onTap: widget.selectionMode
-                  ? () {
-                // Map<dynamic, dynamic>을 Map<String, dynamic>으로 변환
-                final Map<String, dynamic> convertedData = Map<String, dynamic>.from(
-                    itemData.map((key, value) => MapEntry(key.toString(), value))
-                );
-                Navigator.pop(context, convertedData);
-              }
-                  : isDeleteMode
-                  ? () {
-                setState(() {
-                  if (isSelected) {
-                    selectedItems.remove(itemKey);
-                  } else {
-                    selectedItems.add(itemKey);
-                  }
-                });
-              }
-                  : () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ClothingDetailPage(
-                      clothing: itemData,
-                      clothingId: itemKey,
-                      category: itemData['category'] ?? selectedCategory,
-                      childId: _childId!,
+            if (!widget.selectionMode) ...[
+              SizedBox(height: 24),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Row(
+                  children: [
+                    Column(
+                      children: [
+                        CircleAvatar(
+                          radius: 35,
+                          backgroundImage: _childProfileUrl != null
+                              ? NetworkImage(_childProfileUrl!)
+                              : AssetImage('assets/images/profile.jpg') as ImageProvider,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _childName != null ? '${_childName}의 옷장' : 'OOO의 옷장',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                );
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isSelected ? Colors.blue : Colors.grey[300]!,
-                    width: isSelected ? 2 : 1,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.1),
-                      spreadRadius: 1,
-                      blurRadius: 4,
-                      offset: Offset(0, 2),
+                    SizedBox(width: 32),
+                    Expanded(
+                      child: WeatherWidget(),
                     ),
                   ],
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Stack(
+              ),
+            ],
+            SizedBox(height: 40),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Positioned.fill(
-                        child: Image.network(
-                          itemData['imageUrl'],
-                          fit: BoxFit.cover,
-                        ),
+                      Row(
+                        children: filterTypes.map((type) {
+                          bool isSelected = selectedFilter == type;
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8.0),
+                            child: ChoiceChip(
+                              label: Text(type),
+                              selected: isSelected,
+                              onSelected: (bool selected) {
+                                setState(() {
+                                  if (selected) {
+                                    selectedFilter = type;
+                                    selectedCategory = '전체';
+                                    selectedSeasons = {'전체'};
+                                    selectedColor = '전체';
+                                  }
+                                });
+                              },
+                            ),
+                          );
+                        }).toList(),
                       ),
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.bottomCenter,
-                              end: Alignment.topCenter,
-                              colors: [
-                                Colors.black.withOpacity(0.7),
-                                Colors.transparent,
-                              ],
+                      if (!widget.selectionMode)
+                        TextButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              isSearchVisible = !isSearchVisible;
+                              if (!isSearchVisible) {
+                                _searchController.clear();
+                              }
+                            });
+                          },
+                          icon: Icon(
+                            Icons.search,
+                            size: 20,
+                            color: Colors.grey[600],
+                          ),
+                          label: Text(
+                            '검색',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
                             ),
                           ),
-                          padding: EdgeInsets.all(8),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                itemData['name'] ?? '',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              SizedBox(height: 2),
-                              Text(
-                                'Size: ${itemData['size'] ?? ''}',
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.8),
-                                  fontSize: 10,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           ),
                         ),
-                      ),
                     ],
                   ),
-                ),
-              ),
-            ),
-            if ((isDeleteMode || widget.selectionMode) && isSelected)
-              Positioned(
-                right: 8,
-                top: 8,
-                child: Container(
-                  padding: EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    color: Colors.blue,
-                    shape: BoxShape.circle,
+                  SizedBox(height: 16),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        if (selectedFilter == '카테고리')
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                _buildCategoryButton('전체'),
+                                SizedBox(width: 16),
+                                _buildCategoryButton('올인원'),
+                                SizedBox(width: 16),
+                                _buildCategoryButton('상의'),
+                                SizedBox(width: 16),
+                                _buildCategoryButton('하의'),
+                                SizedBox(width: 16),
+                                _buildCategoryButton('신발',),
+                              ],
+                            ),
+                          )
+                        else if (selectedFilter == '계절')
+                          Row(
+                            children: seasons.map((season) {
+                              bool isSelected = selectedSeasons.contains(season);
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 8.0),
+                                child: FilterChip(
+                                  label: Text(season),
+                                  selected: isSelected,
+                                  onSelected: (bool selected) {
+                                    setState(() {
+                                      if (season == '전체') {
+                                        selectedSeasons.clear();
+                                        selectedSeasons.add('전체');
+                                      } else {
+                                        if (selected) {
+                                          selectedSeasons.add(season);
+                                          selectedSeasons.remove('전체');
+                                        } else {
+                                          selectedSeasons.remove(season);
+                                        }
+                                        if (selectedSeasons.isEmpty) {
+                                          selectedSeasons.add('전체');
+                                        }
+                                      }
+                                    });
+                                  },
+                                ),
+                              );
+                            }).toList(),
+                          )
+                        else if (selectedFilter == '색상')
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                _buildColorBox('전체', Colors.transparent),
+                                _buildColorBox('흰색', Colors.white),
+                                _buildColorBox('검정', Colors.black),
+                                _buildColorBox('빨강', Colors.red),
+                                _buildColorBox('주황', Colors.orange),
+                                _buildColorBox('노랑', Colors.yellow),
+                                _buildColorBox('초록', Colors.green),
+                                _buildColorBox('파랑', Colors.blue),
+                                _buildColorBox('남색', Colors.indigo),
+                                _buildColorBox('보라', Colors.purple),
+                                _buildColorBox('회색', Colors.grey),
+                                _buildColorBox('분홍', Colors.pink),
+                                _buildColorBox('갈색', Colors.brown),
+                              ],
+                            ),
+                      ],
+                    ),
                   ),
-                  child: Icon(
-                    Icons.check,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-              ),
-          ],
-        );
-      },
-    );
-    },
-    ),
-    ),
+                  if (isSearchVisible) ...[
+                    SizedBox(height: 16),
+                    Container(
+                      height: 45,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: TextField(
+                        controller: _searchController,
+                        decoration: InputDecoration(
+                          hintText: '검색어를 입력하세요',
+                          hintStyle: TextStyle(
+                            color: Colors.grey[500],
+                            fontSize: 14,
+                          ),
+                          prefixIcon: Icon(Icons.search, size: 22),
+                          border: InputBorder.none,
+                          contentPadding:
+                          EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+                          suffixIcon: _searchController.text.isNotEmpty
+                              ? IconButton(
+                            icon: Icon(Icons.clear, size: 20),
+                            onPressed: () {
+                              setState(() {
+                                _searchController.clear();
+                              });
+                            },
+                          )
+                              : null,
+                        ),
+                        onChanged: (value) {
+                          setState(() {});
+                        },
+                      ),
+                    ),
+                  ],
+                  if (!widget.selectionMode)
+                    SizedBox(height: 16),
+                  if (!widget.selectionMode)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              isDeleteMode = !isDeleteMode;
+                              if (!isDeleteMode) {
+                                selectedItems.clear();
+                              }
+                            });
+                          },
+                          icon: Icon(
+                            isDeleteMode ? Icons.close : Icons.delete_outline,
+                            size: 20,
+                            color: Colors.grey[600],
+                          ),
+                          label: Text(
+                            isDeleteMode ? '취소' : '삭제',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                        ),
+                      ],
+                    ),
                 ],
+              ),
             ),
+            SizedBox(height: 24),
+            Expanded(
+              child: StreamBuilder<DatabaseEvent>(
+                stream: _clothingRef.onValue,
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return Center(child: Text('에러가 발생했습니다'));
+                  }
+
+                  if (!snapshot.hasData || snapshot.data?.snapshot.value == null) {
+                    return Center(child: Text('등록된 옷이 없습니다'));
+                  }
+
+                  Map<dynamic, dynamic> categories =
+                  snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
+                  List<MapEntry<dynamic, dynamic>> filteredClothing = [];
+
+                  categories.forEach((category, clothingItems) {
+                    if (clothingItems != null && clothingItems is Map) {
+                      clothingItems.forEach((key, value) {
+                        if (value is Map) {
+                          filteredClothing.add(MapEntry(key, value));
+                        }
+                      });
+                    }
+                  });
+
+                  // 검색어와 선택된 필터로 필터링 적용
+                  if (isSearchVisible && _searchController.text.isNotEmpty) {
+                    filteredClothing = filterClothing(filteredClothing, _searchController.text);
+                  } else {
+                    filteredClothing = filterClothing(filteredClothing, '');
+                  }
+
+                  if (filteredClothing.isEmpty) {
+                    return Center(
+                      child: Text(
+                        isSearchVisible && _searchController.text.isNotEmpty
+                            ? '검색 결과가 없습니다'
+                            : '${selectedFilter == '카테고리' ? selectedCategory : selectedFilter == '계절' ? selectedSeasons.join(', ') : selectedColor}에 해당하는 옷이 없습니다',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 16,
+                        ),
+                      ),
+                    );
+                  }
+
+                  return GridView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      mainAxisSpacing: 24,
+                      crossAxisSpacing: 24,
+                      childAspectRatio: 0.9,
+                    ),
+                    itemCount: filteredClothing.length,
+                    itemBuilder: (context, index) {
+                      final MapEntry<dynamic, dynamic> entry = filteredClothing[index];
+                      final String itemKey = entry.key;
+                      final Map<dynamic, dynamic> itemData = entry.value;
+                      bool isSelected = selectedItems.contains(itemKey);
+
+                      return Stack(
+                        children: [
+                          GestureDetector(
+                            onTap: widget.selectionMode
+                                ? () {
+                              // Map<dynamic, dynamic>을 Map<String, dynamic>으로 변환
+                              final Map<String, dynamic> convertedData = Map<String, dynamic>.from(
+                                  itemData.map((key, value) => MapEntry(key.toString(), value))
+                              );
+                              Navigator.pop(context, convertedData);
+                            }
+                                : isDeleteMode
+                                ? () {
+                              setState(() {
+                                if (isSelected) {
+                                  selectedItems.remove(itemKey);
+                                } else {
+                                  selectedItems.add(itemKey);
+                                }
+                              });
+                            }
+                                : () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ClothingDetailPage(
+                                    clothing: itemData,
+                                    clothingId: itemKey,
+                                    category: itemData['category'] ?? selectedCategory,
+                                    childId: _childId!,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: isSelected ? Colors.blue : Colors.grey[300]!,
+                                  width: isSelected ? 2 : 1,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.grey.withOpacity(0.1),
+                                    spreadRadius: 1,
+                                    blurRadius: 4,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Stack(
+                                  children: [
+                                    Positioned.fill(
+                                      child: Image.network(
+                                        itemData['imageUrl'],
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                    Positioned(
+                                      left: 0,
+                                      right: 0,
+                                      bottom: 0,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            begin: Alignment.bottomCenter,
+                                            end: Alignment.topCenter,
+                                            colors: [
+                                              Colors.black.withOpacity(0.7),
+                                              Colors.transparent,
+                                            ],
+                                          ),
+                                        ),
+                                        padding: EdgeInsets.all(8),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              itemData['name'] ?? '',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            SizedBox(height: 2),
+                                            Text(
+                                              'Size: ${itemData['size'] ?? ''}',
+                                              style: TextStyle(
+                                                color: Colors.white.withOpacity(0.8),
+                                                fontSize: 10,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          if ((isDeleteMode || widget.selectionMode) && isSelected)
+                            Positioned(
+                              right: 8,
+                              top: 8,
+                              child: Container(
+                                padding: EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.check,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
         ),
+      ),
       floatingActionButton: widget.selectionMode ? null : Container(
         decoration: BoxDecoration(
           shape: BoxShape.circle,
@@ -732,7 +741,7 @@ class _ClosetPageState extends State<ClosetPage> {
     );
   }
 
-  Widget _buildCategoryButton(String label, IconData icon) {
+  Widget _buildCategoryButton(String label) {
     bool isSelected = selectedCategory == label;
 
     return Container(
@@ -757,9 +766,10 @@ class _ClosetPageState extends State<ClosetPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                icon,
-                size: 32,
+              Image.asset(
+                categoryImages[label]!,
+                width: 32,
+                height: 32,
                 color: isSelected ? Colors.blue : Colors.grey[600],
               ),
               const SizedBox(height: 6),
