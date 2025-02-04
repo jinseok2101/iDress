@@ -638,6 +638,7 @@ class _ClosetPageState extends State<ClosetPage> {
           ],
         ),
         child: FloatingActionButton(
+          heroTag: 'closet_fab',
           onPressed: () {
             Navigator.push(
               context,
