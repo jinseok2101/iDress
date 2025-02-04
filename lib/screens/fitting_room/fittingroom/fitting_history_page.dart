@@ -43,8 +43,8 @@ class _FittingHistoryPageState extends State<FittingHistoryPage> {
             unselectedLabelColor: Colors.grey,
             indicatorColor: Colors.blue,
             tabs: [
-              Tab(text: '일반 피팅'),
-              Tab(text: '한벌옷 피팅'),
+              Tab(text: '모든 피팅 기록'),
+              Tab(text: '저장한 피팅 기록'),
             ],
           ),
         ),
@@ -52,11 +52,11 @@ class _FittingHistoryPageState extends State<FittingHistoryPage> {
           children: [
             HistoryListTab(
               childInfo: widget.childInfo,
-              category: 'top_bottom',
+              type: 'history',
             ),
             HistoryListTab(
               childInfo: widget.childInfo,
-              category: 'set',
+              type: 'results',
             ),
           ],
         ),
@@ -67,12 +67,12 @@ class _FittingHistoryPageState extends State<FittingHistoryPage> {
 
 class HistoryListTab extends StatefulWidget {
   final Map<String, dynamic> childInfo;
-  final String category;
+  final String type; // 'history' 또는 'results'
 
   const HistoryListTab({
     Key? key,
     required this.childInfo,
-    required this.category,
+    required this.type,
   }) : super(key: key);
 
   @override
@@ -97,9 +97,8 @@ class _HistoryListTabState extends State<HistoryListTab>
         .child(userId)
         .child('children')
         .child(widget.childInfo['childId'])
-        .child('fittingHistory')
-        .child('category')
-        .child(widget.category);
+        .child(widget.type == 'history' ? 'fittingHistory' : 'fittingResults')
+        .child('category');
 
     _stream = _ref.orderByChild('timestamp').onValue;
   }
@@ -119,31 +118,45 @@ class _HistoryListTabState extends State<HistoryListTab>
           return Center(child: Text('피팅 기록이 없습니다'));
         }
 
-        Map<dynamic, dynamic> histories =
+        Map<dynamic, dynamic> categories =
         snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
-        List<MapEntry<dynamic, dynamic>> historyList =
-        histories.entries.toList();
+        List<MapEntry<dynamic, dynamic>> allHistories = [];
 
-        historyList.sort((a, b) =>
+        // 모든 카테고리의 기록을 하나의 리스트로 합치기
+        categories.forEach((category, histories) {
+          if (histories is Map) {
+            histories.forEach((key, value) {
+              if (value is Map) {
+                allHistories.add(MapEntry(key, {
+                  ...value,
+                  'category': category,
+                }));
+              }
+            });
+          }
+        });
+
+        // 날짜순으로 정렬
+        allHistories.sort((a, b) =>
             (b.value['timestamp'] as int).compareTo(a.value['timestamp'] as int));
 
         return ListView.builder(
           padding: EdgeInsets.all(16),
-          itemCount: historyList.length,
+          itemCount: allHistories.length,
           itemBuilder: (context, index) {
-            final history = historyList[index].value;
+            final history = allHistories[index].value;
             final DateTime date = DateTime.parse(history['date']);
             final String formattedDate =
             DateFormat('yyyy년 MM월 dd일 HH:mm').format(date);
 
-            return GestureDetector( // Card를 GestureDetector로 감싸기
+            return GestureDetector(
               onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => FittingHistoryDetailPage(
                       historyData: history,
-                      category: widget.category,
+                      category: history['category'],
                     ),
                   ),
                 );
@@ -163,14 +176,15 @@ class _HistoryListTabState extends State<HistoryListTab>
                         ),
                       ),
                     ),
-                    if (widget.category == 'set' && history['onepieceUrl'] != null)
+                    if (history['category'] == 'set' &&
+                        history['processedImageUrl'] != null)
                       Image.network(
-                        history['onepieceUrl'],
+                        history['processedImageUrl'],
                         fit: BoxFit.cover,
                         width: double.infinity,
                         height: 200,
                       )
-                    else if (widget.category == 'top_bottom')
+                    else if (history['category'] == 'top_bottom')
                       Row(
                         children: [
                           if (history['topImageUrl'] != null)
