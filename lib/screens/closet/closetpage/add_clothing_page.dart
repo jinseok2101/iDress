@@ -113,7 +113,6 @@ class _AddClothingPageState extends State<AddClothingPage> {
         setState(() {
           selectedCategory = result['category'];
           selectedColor = result['color'];
-          // 계절 정보 적용
           selectedSeasons = Set<String>.from(result['seasons'] ?? ['봄']);
           _isAnalyzing = false;
         });
@@ -129,8 +128,20 @@ class _AddClothingPageState extends State<AddClothingPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text('카테고리: ${result['category']}'),
+                    SizedBox(height: 8),
                     Text('색상: ${result['color']}'),
+                    SizedBox(height: 8),
                     Text('계절: ${(result['seasons'] as List<String>).join(", ")}'),
+                    SizedBox(height: 8),
+                    Text('상세 설명:', style: TextStyle(fontWeight: FontWeight.bold)),
+                    SizedBox(height: 4),
+                    Text(
+                      result['memo'] ?? '상세 설명이 없습니다.',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.black87,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -213,29 +224,53 @@ class _AddClothingPageState extends State<AddClothingPage> {
 
   Future<void> _pickImage() async {
     try {
+      setState(() {
+        _isUploading = true;
+      });
+
       final ImageSource? source = await _showImageSourceDialog(context);
 
       if (source != null) {
         final XFile? pickedFile = await _picker.pickImage(
           source: source,
-          maxWidth: 1024,
-          maxHeight: 1024,
-          imageQuality: 85,
+          maxWidth: 800,
+          maxHeight: 800,
+          imageQuality: 70,
         );
 
         if (pickedFile != null) {
           final File imageFile = File(pickedFile.path);
-          final File? processedFile = await _processImageSegmentation(imageFile);
-          if (processedFile != null){
-            setState(() {
-              _imageFile = processedFile;
-            });
-          }
-          else {
+
+          try {
+            // 서버 연결 상태 확인 (3초 타임아웃)
+            final response = await http
+                .get(Uri.parse('http://34.47.104.167/upload'))
+                .timeout(Duration(seconds: 3));
+
+            if (response.statusCode != 404) {  // 서버가 응답하면
+              final File? processedFile = await _processImageSegmentation(imageFile);
+              if (processedFile != null) {
+                setState(() {
+                  _imageFile = processedFile;
+                });
+              } else {
+                setState(() {
+                  _imageFile = imageFile;
+                });
+              }
+            } else {
+              setState(() {
+                _imageFile = imageFile;
+              });
+            }
+          } catch (e) {
+            // 서버 연결 실패시 원본 이미지 사용
+            print('서버 연결 실패: $e');
             setState(() {
               _imageFile = imageFile;
             });
           }
+
           await _analyzeAndSetClothing();
         }
       }
@@ -243,6 +278,10 @@ class _AddClothingPageState extends State<AddClothingPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('이미지 선택 중 오류가 발생했습니다')),
       );
+    } finally {
+      setState(() {
+        _isUploading = false;
+      });
     }
   }
 
