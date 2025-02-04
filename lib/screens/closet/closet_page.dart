@@ -39,6 +39,15 @@ class _ClosetPageState extends State<ClosetPage> {
   final List<String> filterTypes = ['카테고리', '계절', '색상'];
   final List<String> seasons = ['전체', '봄', '여름', '가을', '겨울', '사계절'];
 
+  final Map<String, String> categoryImages = {
+    '전체': 'assets/images/categories/free-icon-hanger-69981.png',
+    '올인원': 'assets/images/categories/free-icon-onesie-1012727.png',
+    '상의': 'assets/images/categories/free-icon-shirt-16882503.png',
+    '하의': 'assets/images/categories/free-icon-pants-8190299.png',
+    '신발': 'assets/images/categories/free-icon-shoes-7606033.png',
+  };
+
+
   @override
   void initState() {
     super.initState();
@@ -294,15 +303,15 @@ class _ClosetPageState extends State<ClosetPage> {
     child: Row(
     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
     children: [
-    _buildCategoryButton('전체', Icons.checkroom),
+    _buildCategoryButton('전체'),
     SizedBox(width: 16),
-    _buildCategoryButton('올인원', Icons.accessibility_new),
+    _buildCategoryButton('올인원'),
     SizedBox(width: 16),
-    _buildCategoryButton('상의', Icons.checkroom),
+    _buildCategoryButton('상의'),
     SizedBox(width: 16),
-    _buildCategoryButton('하의', Icons.checkroom),
+    _buildCategoryButton('하의'),
     SizedBox(width: 16),
-    _buildCategoryButton('신발', Icons.checkroom),
+    _buildCategoryButton('신발',),
     ],
     ),
     )
@@ -732,7 +741,7 @@ class _ClosetPageState extends State<ClosetPage> {
     );
   }
 
-  Widget _buildCategoryButton(String label, IconData icon) {
+  Widget _buildCategoryButton(String label) {
     bool isSelected = selectedCategory == label;
 
     return Container(
@@ -757,9 +766,10 @@ class _ClosetPageState extends State<ClosetPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                icon,
-                size: 32,
+              Image.asset(
+                categoryImages[label]!,
+                width: 32,
+                height: 32,
                 color: isSelected ? Colors.blue : Colors.grey[600],
               ),
               const SizedBox(height: 6),
