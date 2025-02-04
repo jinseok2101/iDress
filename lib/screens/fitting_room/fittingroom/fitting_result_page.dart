@@ -441,7 +441,7 @@ class _FittingResultPageState extends State<FittingResultPage> {
                                 .child('children')
                                 .child(widget.childInfo['childId'])
                                 .child('clothing')
-                                .child(widget.isOnepiece ? '한벌옷' : '상의')
+                                .child(widget.isOnepiece ? '올인원' : '상의')
                                 .onValue,
                             builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
                               if (!snapshot.hasData || snapshot.data?.snapshot.value == null) {
