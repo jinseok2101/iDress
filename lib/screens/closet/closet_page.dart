@@ -317,19 +317,11 @@ class _ClosetPageState extends State<ClosetPage> {
                                   selected: isSelected,
                                   onSelected: (bool selected) {
                                     setState(() {
-                                      if (season == '전체') {
-                                        selectedSeasons.clear();
-                                        selectedSeasons.add('전체');
+                                      if (selected) {
+                                        selectedSeasons.clear(); // 다른 계절을 모두 해제
+                                        selectedSeasons.add(season); // 선택된 계절만 추가
                                       } else {
-                                        if (selected) {
-                                          selectedSeasons.add(season);
-                                          selectedSeasons.remove('전체');
-                                        } else {
-                                          selectedSeasons.remove(season);
-                                        }
-                                        if (selectedSeasons.isEmpty) {
-                                          selectedSeasons.add('전체');
-                                        }
+                                        selectedSeasons.remove(season); // 선택 해제
                                       }
                                     });
                                   },
