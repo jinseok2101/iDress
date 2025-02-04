@@ -39,7 +39,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _pickProfileImage() async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 50,  // 이미지 품질 압축
+      maxWidth: 512,    // 최대 너비 제한
+      maxHeight: 512,
+    );
 
     if (pickedFile != null) {
       setState(() {
@@ -50,7 +55,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _pickFullBodyImage() async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 50,
+      maxWidth: 768,
+      maxHeight: 1024,
+    );
 
     if (pickedFile != null) {
       setState(() {
@@ -117,6 +127,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
+
+
     setState(() => _isUploading = true);
 
     try {
@@ -131,6 +143,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       final childId = childRef.key!;
 
+      // 이미지 업로드를 위한 참조 생성
       final profileImageRef = FirebaseStorage.instance
           .ref()
           .child('users')
@@ -149,24 +162,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
           .child('child_fullbody_images')
           .child('fullbody_${DateTime.now().millisecondsSinceEpoch}${path.extension(_fullBodyImage!.path)}');
 
-      final profileUpload = await profileImageRef.putFile(_profileImage!);
-      final fullBodyUpload = await fullBodyImageRef.putFile(_fullBodyImage!);
+      // 두 이미지를 병렬로 업로드
+      final uploadTasks = await Future.wait([
+        profileImageRef.putFile(_profileImage!),
+        fullBodyImageRef.putFile(_fullBodyImage!),
+      ]);
 
-      final profileImageUrl = await profileUpload.ref.getDownloadURL();
-      final fullBodyImageUrl = await fullBodyUpload.ref.getDownloadURL();
+      // 업로드된 이미지의 URL을 병렬로 가져오기
+      final urls = await Future.wait([
+        uploadTasks[0].ref.getDownloadURL(),
+        uploadTasks[1].ref.getDownloadURL(),
+      ]);
+
+      final profileImageUrl = urls[0];
+      final fullBodyImageUrl = urls[1];
 
       String formattedBirthdate = DateFormat('yyyy-MM-dd').format(_selectedBirthdate!);
 
       await childRef.set({
         'childId': childId,
         'name': _nameController.text,
-      'birthdate': formattedBirthdate,
+        'birthdate': formattedBirthdate,
         'gender': _selectedGender,
         'height': _heightController.text,
         'weight': _weightController.text,
         'profileImageUrl': profileImageUrl,
         'fullBodyImageUrl': fullBodyImageUrl,
       });
+
+
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -177,6 +201,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       context.go('/home');
     } catch (e) {
+      Navigator.pop(context); // 로딩 다이얼로그 닫기
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('등록 중 오류 발생: $e'),
@@ -187,6 +212,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       setState(() => _isUploading = false);
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
