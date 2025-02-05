@@ -8,6 +8,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 class Auth {
   final firebase_auth.FirebaseAuth _firebaseAuth = firebase_auth.FirebaseAuth.instance;
@@ -161,22 +162,13 @@ class Auth {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
     debugPrint('로컬 데이터 삭제 완료');
-
-
   }
 
-
-
-
-
   Future<void> deleteAccount(BuildContext context) async {
-
     if (context.mounted) {
-      context.go('/start'); // '/start' 경로로 이동
-
+      context.go('/start');
     }
 
-    // 로딩 스피너 표시
     if (context.mounted && Navigator.canPop(context)) {
       Navigator.pop(context);
       debugPrint('Checkpoint: 로딩 스피너 닫기 완료');
@@ -184,16 +176,43 @@ class Auth {
       debugPrint('Checkpoint: 로딩 스피너를 닫을 수 없습니다. Navigator.canPop: ${Navigator.canPop(context)}');
     }
 
-
     try {
       final user = _firebaseAuth.currentUser;
       if (user != null) {
+        // 1. Firebase Storage 데이터 삭제
+        final storageRef = FirebaseStorage.instance.ref().child('users/${user.uid}');
+        try {
+          // 해당 사용자의 모든 파일 리스트 가져오기
+          final ListResult result = await storageRef.listAll();
+
+          // 모든 파일 삭제
+          for (var item in result.items) {
+            await item.delete();
+            debugPrint('Storage 파일 삭제 완료: ${item.fullPath}');
+          }
+
+          // 모든 하위 폴더 삭제
+          for (var prefix in result.prefixes) {
+            final subResult = await prefix.listAll();
+            for (var item in subResult.items) {
+              await item.delete();
+              debugPrint('Storage 하위 폴더 파일 삭제 완료: ${item.fullPath}');
+            }
+          }
+
+          debugPrint('Checkpoint: Firebase Storage 데이터 삭제 완료');
+        } catch (e) {
+          debugPrint('Firebase Storage 데이터 삭제 실패: $e');
+        }
+
+        // 2. Realtime Database 데이터 삭제
         final databaseRef = FirebaseDatabase.instance.ref("users/${user.uid}");
         await databaseRef.remove();
-        debugPrint('Checkpoint: Firebase 데이터 삭제 완료');
+        debugPrint('Checkpoint: Firebase Database 데이터 삭제 완료');
 
+        // 3. Authentication 계정 삭제
         await user.delete();
-        debugPrint('Checkpoint: Firebase 계정 삭제 완료');
+        debugPrint('Checkpoint: Firebase Authentication 계정 삭제 완료');
       } else {
         debugPrint('Checkpoint: 삭제할 Firebase 계정이 없습니다.');
         return;
@@ -204,11 +223,6 @@ class Auth {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('계정 삭제 실패: $e')),
         );
-      }
-    } finally {
-      if (context.mounted && Navigator.canPop(context)) {
-        Navigator.pop(context);
-        debugPrint('Checkpoint: 로딩 스피너 닫기 완료');
       }
     }
 
@@ -230,16 +244,7 @@ class Auth {
     } catch (e) {
       debugPrint('로그아웃 처리 중 오류 발생: $e');
     }
-
-
   }
-
-
-
-
-
-
-
 
   // UID로 사용자 확인
   Future<bool> isRegisteredByUID(String uid) async {
