@@ -37,11 +37,29 @@ class _AddClothingPageState extends State<AddClothingPage> {
   final ClothingAnalyzer _analyzer = ClothingAnalyzer();
 
   final List<Map<String, dynamic>> categories = [
-    {'label': '올인원', 'icon': Icons.accessibility_new},
-    {'label': '상의', 'icon': Icons.checkroom},
-    {'label': '하의', 'icon': Icons.checkroom},
-    {'label': '신발', 'icon': Icons.checkroom},
+    {
+      'label': '올인원',
+      'imagePath': 'assets/images/categories/free-icon-onesie-1012727.png',
+    },
+    {
+      'label': '아우터',
+      'imagePath': 'assets/images/categories/free-icon-onesie-1012727.png',
+    },
+    {
+      'label': '상의',
+      'imagePath': 'assets/images/categories/free-icon-shirt-16882503.png',
+    },
+    {
+      'label': '하의',
+      'imagePath': 'assets/images/categories/free-icon-pants-8190299.png',
+    },
+    {
+      'label': '신발',
+      'imagePath': 'assets/images/categories/free-icon-shoes-7606033.png',
+    },
   ];
+
+
 
   Set<String> selectedSeasons = {}; // 수정된 부분: 여러 계절 선택
 
@@ -515,10 +533,18 @@ class _AddClothingPageState extends State<AddClothingPage> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(
-                              category['icon'],
-                              size: 32,
-                              color: isSelected ? Colors.blue : Colors.grey[600],
+                            Image.asset(
+                              category['imagePath'],
+                              width: 32,
+                              height: 32,
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Icon(
+                                  Icons.error_outline,
+                                  size: 32,
+                                  color: isSelected ? Colors.blue : Colors.grey[600],
+                                );
+                              },
                             ),
                             SizedBox(height: 6),
                             Text(
@@ -536,6 +562,7 @@ class _AddClothingPageState extends State<AddClothingPage> {
                 }).toList(),
               ),
             ),
+
             SizedBox(height: 40),
 
             Text(
@@ -570,6 +597,8 @@ class _AddClothingPageState extends State<AddClothingPage> {
             SizedBox(height: 8),
             TextField(
               controller: sizeController,
+              keyboardType: TextInputType.number,
+
               decoration: InputDecoration(
                 filled: true,
                 fillColor: Colors.white,

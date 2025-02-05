@@ -42,6 +42,7 @@ class _ClosetPageState extends State<ClosetPage> {
   final Map<String, String> categoryImages = {
     '전체': 'assets/images/categories/free-icon-hanger-69981.png',
     '올인원': 'assets/images/categories/free-icon-onesie-1012727.png',
+    '아우터': 'assets/images/categories/free-icon-shirt-16882503.png',
     '상의': 'assets/images/categories/free-icon-shirt-16882503.png',
     '하의': 'assets/images/categories/free-icon-pants-8190299.png',
     '신발': 'assets/images/categories/free-icon-shoes-7606033.png',
@@ -146,7 +147,7 @@ class _ClosetPageState extends State<ClosetPage> {
   Future<void> deleteSelectedItems() async {
     try {
       for (String key in selectedItems) {
-        final categories = ['올인원', '상의', '하의', '신발'];
+        final categories = ['올인원','아우터', '상의', '하의', '신발'];
         for (String category in categories) {
           final categoryRef = _clothingRef.child(category);
           final itemSnapshot = await categoryRef.child(key).get();
@@ -306,6 +307,8 @@ class _ClosetPageState extends State<ClosetPage> {
                                 _buildCategoryButton('전체'),
                                 SizedBox(width: 16),
                                 _buildCategoryButton('올인원'),
+                                SizedBox(width: 16),
+                                _buildCategoryButton('아우터'),
                                 SizedBox(width: 16),
                                 _buildCategoryButton('상의'),
                                 SizedBox(width: 16),
