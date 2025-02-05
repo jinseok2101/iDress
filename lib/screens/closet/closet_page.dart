@@ -48,6 +48,8 @@ class _ClosetPageState extends State<ClosetPage> {
     '신발': 'assets/images/categories/free-icon-shoes-7606033.png',
   };
 
+  List<MapEntry<dynamic, dynamic>> filteredClothing = [];
+
 
   @override
   void initState() {
@@ -329,19 +331,11 @@ class _ClosetPageState extends State<ClosetPage> {
                                   selected: isSelected,
                                   onSelected: (bool selected) {
                                     setState(() {
-                                      if (season == '전체') {
-                                        selectedSeasons.clear();
-                                        selectedSeasons.add('전체');
+                                      if (selected) {
+                                        selectedSeasons.clear(); // 다른 계절을 모두 해제
+                                        selectedSeasons.add(season); // 선택된 계절만 추가
                                       } else {
-                                        if (selected) {
-                                          selectedSeasons.add(season);
-                                          selectedSeasons.remove('전체');
-                                        } else {
-                                          selectedSeasons.remove(season);
-                                        }
-                                        if (selectedSeasons.isEmpty) {
-                                          selectedSeasons.add('전체');
-                                        }
+                                        selectedSeasons.remove(season); // 선택 해제
                                       }
                                     });
                                   },
@@ -411,10 +405,22 @@ class _ClosetPageState extends State<ClosetPage> {
                   ],
                   if (!widget.selectionMode)
                     SizedBox(height: 16),
+
                   if (!widget.selectionMode)
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween, // 좌우로 배치
                       children: [
+                        Row(
+                          children: [
+                            Text(
+                              '수량 (${filteredClothing.length})', // 수량 텍스트
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ],
+                        ),
                         TextButton.icon(
                           onPressed: () {
                             setState(() {
@@ -460,7 +466,8 @@ class _ClosetPageState extends State<ClosetPage> {
 
                   Map<dynamic, dynamic> categories =
                   snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
-                  List<MapEntry<dynamic, dynamic>> filteredClothing = [];
+
+                  filteredClothing.clear();
 
                   categories.forEach((category, clothingItems) {
                     if (clothingItems != null && clothingItems is Map) {
@@ -507,6 +514,8 @@ class _ClosetPageState extends State<ClosetPage> {
                       final String itemKey = entry.key;
                       final Map<dynamic, dynamic> itemData = entry.value;
                       bool isSelected = selectedItems.contains(itemKey);
+
+                      int quantity = itemData['quantity'] ?? 0;
 
                       return Stack(
                         children: [
