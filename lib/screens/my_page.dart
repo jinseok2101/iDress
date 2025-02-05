@@ -297,14 +297,32 @@ class _MyPageState extends State<MyPage> {
               context: context,
               builder: (BuildContext context) {
                 return AlertDialog(
-                  title: const Text('로그아웃'),
-                  content: const Text('정말 로그아웃 하시겠습니까?'),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  content: Text(
+                    '로그아웃 하시겠습니까?',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  actionsAlignment: MainAxisAlignment.spaceEvenly,
+                  actionsPadding: EdgeInsets.only(bottom: 8),
                   actions: [
                     TextButton(
                       onPressed: () {
                         Navigator.pop(context);
                       },
-                      child: const Text('취소'),
+                      child: Text(
+                        '취소',
+                        style: TextStyle(
+                          color: Colors.blue,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ),
                     TextButton(
                       onPressed: () async {
@@ -312,7 +330,14 @@ class _MyPageState extends State<MyPage> {
                         final authService = Auth();
                         await authService.logout(context);
                       },
-                      child: const Text('확인'),
+                      child: Text(
+                        '로그아웃',
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ),
                   ],
                 );
@@ -323,41 +348,70 @@ class _MyPageState extends State<MyPage> {
               context: context,
               builder: (BuildContext context) {
                 return AlertDialog(
-                  title: const Text('계정 탈퇴'),
-                  content: const Text(
-                    '계정을 탈퇴하면 모든 데이터가 삭제되며 복구할 수 없습니다.\n정말 탈퇴하시겠습니까?',
-                    style: TextStyle(fontSize: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
                   ),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '계정을 삭제하시겠습니까?',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        '모든 데이터가 영구적으로 삭제됩니다.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                  actionsAlignment: MainAxisAlignment.spaceEvenly,
+                  actionsPadding: EdgeInsets.only(bottom: 8),
                   actions: [
                     TextButton(
                       onPressed: () {
                         Navigator.pop(context);
                       },
-                      child: const Text('취소'),
+                      child: Text(
+                        '취소',
+                        style: TextStyle(
+                          color: Colors.blue,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ),
                     TextButton(
                       onPressed: () async {
-                        Navigator.pop(context); // 첫 번째 다이얼로그 닫기
-
+                        Navigator.pop(context);
                         // 로딩 표시
                         showDialog(
                           context: context,
                           barrierDismissible: false,
                           builder: (BuildContext context) {
-                            return const Center(
+                            return Center(
                               child: CircularProgressIndicator(),
                             );
                           },
                         );
-
                         final authService = Auth();
                         await authService.deleteAccount(context);
-
-                        // 로딩 다이얼로그 닫기
                       },
-                      child: const Text(
-                        '탈퇴',
-                        style: TextStyle(color: Colors.red),
+                      child: Text(
+                        '삭제',
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ],
