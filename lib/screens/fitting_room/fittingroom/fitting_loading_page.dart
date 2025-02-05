@@ -117,13 +117,9 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
         }
 
         // 서버에 전송할 의류 타입 결정
-        String serverClothType = switch (widget.clothType) {
-          '상의' => 'upper_body',
-          '하의' => 'lower_body',
-          '아우터' => 'outer',  // 아우터 타입 추가
-          '올인원' => 'jumpsuit',
-          _ => 'upper_body'
-        };
+        String serverClothType = widget.clothType == '하의' ? 'lower_body' :
+        widget.clothType == '올인원' ? 'jumpsuit' :
+        'upper_body';  // 상의와 아우터는 모두 upper_body로 처리
 
         request.fields['cloth_type'] = serverClothType;
         print('cloth_type: $serverClothType');
