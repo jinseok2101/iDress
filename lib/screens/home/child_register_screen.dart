@@ -57,9 +57,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(
       source: ImageSource.gallery,
-      imageQuality: 50,
-      maxWidth: 768,
-      maxHeight: 1024,
+      imageQuality: 80,
+      maxWidth: 1080,
+      maxHeight: 1920,
     );
 
     if (pickedFile != null) {
@@ -290,24 +290,43 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
               ),
               const SizedBox(height: 10),
-              GestureDetector(
-                onTap: _pickFullBodyImage,
-                child: Container(
-                  width: 200,
-                  height: 300,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade200,
-                    borderRadius: BorderRadius.circular(15),
-                  ),
+              Container(
+                width: double.infinity,
+                height: MediaQuery.of(context).size.width * 1.2,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade200,
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: Colors.grey.shade300, width: 1),
+                ),
+                child: GestureDetector(
+                  onTap: _pickFullBodyImage,
                   child: _fullBodyImage != null
-                      ? Image.file(
-                    _fullBodyImage!,
-                    fit: BoxFit.cover,
+                      ? ClipRRect(
+                    borderRadius: BorderRadius.circular(15),
+                    child: Image.file(
+                      _fullBodyImage!,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: double.infinity,
+                    ),
                   )
-                      : const Icon(
-                    Icons.add_a_photo,
-                    size: 50,
-                    color: Colors.grey,
+                      : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.add_a_photo,
+                        size: 50,
+                        color: Colors.grey.shade600,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        '전신 사진을 추가하세요',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
