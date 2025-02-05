@@ -43,7 +43,7 @@ class _AddClothingPageState extends State<AddClothingPage> {
     },
     {
       'label': '아우터',
-      'imagePath': 'assets/images/categories/free-icon-onesie-1012727.png',
+      'imagePath': 'assets/images/categories/outer.png',
     },
     {
       'label': '상의',

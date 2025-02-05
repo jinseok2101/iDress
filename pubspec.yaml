@@ -92,6 +92,7 @@ flutter:
     - assets/images/categories/free-icon-clothing-hanger-5707281.png
     - assets/images/categories/free-icon-pants-8190299.png
     - assets/images/categories/free-icon-hanger-69981.png
+    - assets/images/categories/outer.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

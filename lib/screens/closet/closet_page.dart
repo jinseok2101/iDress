@@ -42,7 +42,7 @@ class _ClosetPageState extends State<ClosetPage> {
   final Map<String, String> categoryImages = {
     '전체': 'assets/images/categories/free-icon-hanger-69981.png',
     '올인원': 'assets/images/categories/free-icon-onesie-1012727.png',
-    '아우터': 'assets/images/categories/free-icon-shirt-16882503.png',
+    '아우터': 'assets/images/categories/outer.png',
     '상의': 'assets/images/categories/free-icon-shirt-16882503.png',
     '하의': 'assets/images/categories/free-icon-pants-8190299.png',
     '신발': 'assets/images/categories/free-icon-shoes-7606033.png',
