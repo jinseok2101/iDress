@@ -23,8 +23,8 @@ class FittingRoomPage extends StatefulWidget {
 }
 
 class _FittingRoomPageState extends State<FittingRoomPage> {
-  String? topImageUrl;     // 추가
-  String? bottomImageUrl;  // 추가
+  String? topImageUrl;
+  String? bottomImageUrl;
   File? topImage;
   File? bottomImage;
   final ImagePicker _picker = ImagePicker();
@@ -120,6 +120,8 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
             allowedCategory = '하의';
           } else if (selectedOption == '올인원') {
             allowedCategory = '올인원';
+          } else if (selectedOption == '아우터') {
+            allowedCategory = '아우터';
           } else if (selectedOption == '상의+하의') {
             allowedCategory = type == 'top' ? '상의' : '하의';
           } else {
@@ -140,7 +142,7 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
           if (selectedClothing != null) {
             setState(() {
               String imageUrl = selectedClothing['imageUrl'] as String;
-              if (type == 'top' || selectedOption == '올인원') {
+              if (type == 'top' || selectedOption == '올인원' || selectedOption == '아우터') {
                 topImageUrl = imageUrl;
                 topImage = null;
               } else if (type == 'bottom') {
@@ -160,10 +162,12 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
 
           if (pickedFile != null) {
             setState(() {
-              if (type == 'top' || selectedOption == '올인원') {
+              if (type == 'top' || selectedOption == '올인원' || selectedOption == '아우터') {
                 topImage = File(pickedFile.path);
+                topImageUrl = null;
               } else if (type == 'bottom') {
                 bottomImage = File(pickedFile.path);
+                bottomImageUrl = null;
               }
             });
           }
@@ -221,7 +225,6 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
               margin: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  // 아이 전신 사진
                   Expanded(
                     flex: 4,
                     child: AspectRatio(
@@ -260,14 +263,12 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
                     ),
                   ),
                   SizedBox(width: 16),
-                  // 오른쪽 영역
                   Container(
                     width: 130,
                     height: MediaQuery.of(context).size.height * 0.7,
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
-                        // 콤보박스
                         Container(
                           padding: EdgeInsets.symmetric(horizontal: 12),
                           decoration: BoxDecoration(
@@ -278,7 +279,7 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
                             value: selectedOption,
                             isExpanded: true,
                             underline: Container(),
-                            items: ['상의', '하의', '상의+하의', '올인원']
+                            items: ['상의', '하의', '아우터', '상의+하의', '올인원']
                                 .map((String value) {
                               return DropdownMenuItem<String>(
                                 value: value,
@@ -291,13 +292,12 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
                             onChanged: (String? newValue) {
                               setState(() {
                                 selectedOption = newValue!;
-                                selectedClothingUrl = null;  // 옵션 변경시 선택된 옷 초기화
+                                selectedClothingUrl = null;
                               });
                             },
                           ),
                         ),
                         SizedBox(height: 16),
-                        // 업로드 영역
                         if (selectedOption == '상의+하의') ...[
                           _buildUploadContainer('top'),
                           SizedBox(height: 16),
@@ -312,7 +312,6 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
               ),
             ),
           ),
-          // 피팅하기 버튼
           Container(
             padding: EdgeInsets.all(16),
             child: _buildFittingButton(),
@@ -325,8 +324,15 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
   Widget _buildUploadContainer(String type) {
     File? image = type == 'top' ? topImage : bottomImage;
     String? imageUrl = type == 'top' ? topImageUrl : bottomImageUrl;
-    String label = type == 'top' ? '상의' : '하의';
-    if (selectedOption == '올인원') label = '올인원';
+    String label;
+
+    if (selectedOption == '올인원') {
+      label = '올인원';
+    } else if (selectedOption == '아우터') {
+      label = '아우터';
+    } else {
+      label = type == 'top' ? '상의' : '하의';
+    }
 
     return Container(
       width: double.infinity,
@@ -352,10 +358,10 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
                 setState(() {
                   if (type == 'top') {
                     topImage = null;
-                    topImageUrl = null;  // URL도 함께 초기화
+                    topImageUrl = null;
                   } else {
                     bottomImage = null;
-                    bottomImageUrl = null;  // URL도 함께 초기화
+                    bottomImageUrl = null;
                   }
                 });
               },
@@ -376,7 +382,7 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
           ),
         ],
       )
-          : imageUrl != null  // 옷장에서 선택된 이미지가 있는 경우
+          : imageUrl != null
           ? Stack(
         children: [
           Positioned.fill(
@@ -467,10 +473,12 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
             return;
           }
 
-          if (selectedOption != '상의+하의' && !hasTopImage && !hasBottomImage) {
+          if ((selectedOption == '상의' || selectedOption == '하의' ||
+              selectedOption == '올인원' || selectedOption == '아우터') &&
+              !hasTopImage && !hasBottomImage) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('최소한 하나의 의류를 선택해주세요'),
+                content: Text('의류를 선택해주세요'),
                 duration: Duration(seconds: 2),
               ),
             );
