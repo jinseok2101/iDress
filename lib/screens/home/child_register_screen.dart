@@ -41,9 +41,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(
       source: ImageSource.gallery,
-      imageQuality: 50,  // 이미지 품질 압축
-      maxWidth: 512,    // 최대 너비 제한
-      maxHeight: 512,
+      imageQuality: 80,
+      maxWidth: 800,
+      maxHeight: 800,
     );
 
     if (pickedFile != null) {
@@ -67,6 +67,39 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _fullBodyImage = File(pickedFile.path);
       });
     }
+  }
+
+  Widget _buildProfileImagePicker() {
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: _pickProfileImage,
+          child: CircleAvatar(
+            radius: 50,
+            backgroundColor: Colors.grey.shade200,
+            child: _profileImage == null
+                ? Icon(
+              Icons.camera_alt,
+              color: Colors.grey.shade600,
+              size: 40,
+            )
+                : ClipOval(
+              child: Image.file(
+                _profileImage!,
+                width: 100,
+                height: 100,
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          '프로필 사진을 추가하세요',
+          style: TextStyle(color: Colors.grey.shade600),
+        ),
+      ],
+    );
   }
 
   void _showDatePicker(BuildContext context) async {
@@ -100,7 +133,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       selectableDayPredicate: (dateTime) {
         return true;
       },
-
     );
 
     if (selectedDate != null) {
@@ -127,8 +159,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-
-
     setState(() => _isUploading = true);
 
     try {
@@ -143,7 +173,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       final childId = childRef.key!;
 
-      // 이미지 업로드를 위한 참조 생성
       final profileImageRef = FirebaseStorage.instance
           .ref()
           .child('users')
@@ -162,13 +191,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
           .child('child_fullbody_images')
           .child('fullbody_${DateTime.now().millisecondsSinceEpoch}${path.extension(_fullBodyImage!.path)}');
 
-      // 두 이미지를 병렬로 업로드
       final uploadTasks = await Future.wait([
         profileImageRef.putFile(_profileImage!),
         fullBodyImageRef.putFile(_fullBodyImage!),
       ]);
 
-      // 업로드된 이미지의 URL을 병렬로 가져오기
       final urls = await Future.wait([
         uploadTasks[0].ref.getDownloadURL(),
         uploadTasks[1].ref.getDownloadURL(),
@@ -190,8 +217,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'fullBodyImageUrl': fullBodyImageUrl,
       });
 
-
-
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('아이 등록이 완료되었습니다!'),
@@ -201,7 +226,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       context.go('/home');
     } catch (e) {
-      Navigator.pop(context); // 로딩 다이얼로그 닫기
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('등록 중 오류 발생: $e'),
@@ -212,7 +236,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       setState(() => _isUploading = false);
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -250,36 +273,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
               ),
               const SizedBox(height: 10),
-              GestureDetector(
-                onTap: _pickProfileImage,
-                child: Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade200,
-                    shape: BoxShape.circle,
-                    image: _profileImage != null
-                        ? DecorationImage(
-                      image: FileImage(_profileImage!),
-                      fit: BoxFit.cover,
-                    )
-                        : null,
-                  ),
-                  child: _profileImage == null
-                      ? const Icon(
-                    Icons.add_a_photo,
-                    size: 40,
-                    color: Colors.grey,
-                  )
-                      : null,
-                ),
-              ),
+              _buildProfileImagePicker(),
               const SizedBox(height: 20),
               _buildTextField('이름', '아이의 이름을 입력하세요', _nameController),
               _buildBirthdateField('생년월일', '아이의 생년월일을 선택하세요', _showDatePicker),
               _buildDropdownField('성별', '아이의 성별을 선택하세요',
-                  ['남자', '여자'],
-                      (value) => setState(() => _selectedGender = value)),
+                  ['남자', '여자'], (value) => setState(() => _selectedGender = value)),
               _buildTextField('신장(cm)', '아이의 신장을 입력하세요', _heightController),
               _buildTextField('체중(kg)', '아이의 체중을 입력하세요', _weightController),
               const SizedBox(height: 20),
@@ -326,7 +325,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ? const CircularProgressIndicator(color: Colors.white)
                     : const Text(
                   '등록하기',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white),
                 ),
               ),
             ],
@@ -336,23 +338,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _buildTextField(String label, String hint, TextEditingController controller) {
+  Widget _buildTextField(
+      String label, String hint, TextEditingController controller) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-              label,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
-          ),
+          Text(label,
+              style:
+              const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           TextField(
             controller: controller,
-
             keyboardType: label.contains("신장") || label.contains("체중")
-                ? TextInputType.number // 숫자 입력 키보드 설정
-                : TextInputType.text,  // 기본 텍스트 입력
+                ? TextInputType.number
+                : TextInputType.text,
             decoration: InputDecoration(
               hintText: hint,
               filled: true,
@@ -368,16 +369,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _buildBirthdateField(String label, String hint, Function(BuildContext) onTap) {
+  Widget _buildBirthdateField(
+      String label, String hint, Function(BuildContext) onTap) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-              label,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
-          ),
+          Text(label,
+              style:
+              const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           GestureDetector(
             onTap: () => onTap(context),
@@ -403,18 +404,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-
-  Widget _buildDropdownField(
-      String label, String hint, List<String> options, ValueChanged<String?> onChanged) {
+  Widget _buildDropdownField(String label, String hint, List<String> options,
+      ValueChanged<String?> onChanged) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-              label,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
-          ),
+          Text(label,
+              style:
+              const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
             decoration: InputDecoration(
