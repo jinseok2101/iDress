@@ -692,7 +692,59 @@ class _ClosetPageState extends State<ClosetPage> {
         padding: EdgeInsets.all(16),
         color: Colors.white,
         child: ElevatedButton(
-          onPressed: selectedItems.isEmpty ? null : deleteSelectedItems,
+          onPressed: selectedItems.isEmpty
+              ? null
+              : () {
+            showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  content: Text(
+                    '선택한 항목을 삭제하시겠습니까?',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  actionsAlignment: MainAxisAlignment.spaceEvenly, // 버튼 간격 균등 분배
+                  actionsPadding: EdgeInsets.only(bottom: 8), // 하단 패딩 추가
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      child: Text(
+                        '취소',
+                        style: TextStyle(
+                          color: Colors.blue,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        deleteSelectedItems();
+                      },
+                      child: Text(
+                        '삭제',
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
           style: ElevatedButton.styleFrom(
             foregroundColor: Colors.white,
             backgroundColor: Colors.red,
