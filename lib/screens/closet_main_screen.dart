@@ -89,41 +89,56 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _screens,
+      body: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(
+            bottom: BorderSide(
+              color: Colors.grey[300]!,
+              width: 0.5,
+            ),
+          ),
+        ),
+        child: IndexedStack(
+          index: _selectedIndex,
+          children: _screens,
+        ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.checkroom),
-            label: '옷장',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: '프로필',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.door_sliding),
-            label: '피팅룸',
-          ),
-        ],
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
-        backgroundColor: Colors.white,
-        elevation: 8,
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.2),
+              spreadRadius: 0,
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: BottomNavigationBar(
+          type: BottomNavigationBarType.fixed,
+          currentIndex: _selectedIndex,
+          onTap: _onItemTapped,
+          items: const <BottomNavigationBarItem>[
+            BottomNavigationBarItem(
+              icon: Icon(Icons.checkroom),
+              label: '옷장',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person),
+              label: '프로필',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.door_sliding),
+              label: '피팅룸',
+            ),
+          ],
+          selectedItemColor: Colors.blue,
+          unselectedItemColor: Colors.grey,
+          backgroundColor: Colors.white,
+          elevation: 0, // BottomNavigationBar의 기본 그림자는 제거
+        ),
       ),
     );
-  }
-
-  @override
-  void didUpdateWidget(MainScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.childInfo != oldWidget.childInfo) {
-      _initializeScreens();
-    }
   }
 }
