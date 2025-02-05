@@ -444,82 +444,70 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
   }
 
   Widget _buildFittingButton() {
+    bool hasTopImage = topImage != null || topImageUrl != null;
+    bool hasBottomImage = bottomImage != null || bottomImageUrl != null;
+    bool isEnabled = (selectedOption == '상의+하의' && hasTopImage && hasBottomImage) ||
+        ((selectedOption == '상의' || selectedOption == '하의' ||
+            selectedOption == '올인원' || selectedOption == '아우터') &&
+            (hasTopImage || hasBottomImage));
+
     return Container(
-      width: 80,
-      height: 80,
+      width: 90,
+      height: 90,
       decoration: BoxDecoration(
-        color: Colors.lightBlue[300],
+        color: isEnabled ? Colors.lightBlue[300] : Colors.grey[300],
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: Colors.lightBlue[300]!.withOpacity(0.3),
+            color: isEnabled
+                ? Colors.lightBlue[300]!.withOpacity(0.3)
+                : Colors.grey[300]!.withOpacity(0.2),
+            spreadRadius: 1,
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: InkWell(
-        onTap: () {
-          bool hasTopImage = topImage != null || topImageUrl != null;
-          bool hasBottomImage = bottomImage != null || bottomImageUrl != null;
-
-          if (selectedOption == '상의+하의' && (!hasTopImage || !hasBottomImage)) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('상의와 하의를 모두 선택해주세요'),
-                duration: Duration(seconds: 2),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: isEnabled ? () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => FittingLoadingPage(
+                  childInfo: widget.childInfo,
+                  topImage: topImage,
+                  bottomImage: bottomImage,
+                  topImageUrl: topImageUrl,
+                  bottomImageUrl: bottomImageUrl,
+                  isOnepiece: selectedOption == '올인원',
+                  isFromCloset: topImageUrl != null || bottomImageUrl != null,
+                  clothType: selectedOption,
+                ),
               ),
             );
-            return;
-          }
-
-          if ((selectedOption == '상의' || selectedOption == '하의' ||
-              selectedOption == '올인원' || selectedOption == '아우터') &&
-              !hasTopImage && !hasBottomImage) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('의류를 선택해주세요'),
-                duration: Duration(seconds: 2),
+          } : null,
+          customBorder: CircleBorder(),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.checkroom,
+                size: 36,
+                color: isEnabled ? Colors.white : Colors.grey[400],
               ),
-            );
-            return;
-          }
-
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => FittingLoadingPage(
-                childInfo: widget.childInfo,
-                topImage: topImage,
-                bottomImage: bottomImage,
-                topImageUrl: topImageUrl,
-                bottomImageUrl: bottomImageUrl,
-                isOnepiece: selectedOption == '올인원',
-                isFromCloset: topImageUrl != null || bottomImageUrl != null,
-                clothType: selectedOption,
+              SizedBox(height: 6),
+              Text(
+                '피팅하기',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isEnabled ? Colors.white : Colors.grey[400],
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-          );
-        },
-        customBorder: CircleBorder(),
-        child: const Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.checkroom,
-              size: 32,
-              color: Colors.white,
-            ),
-            SizedBox(height: 4),
-            Text(
-              '피팅하기',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
