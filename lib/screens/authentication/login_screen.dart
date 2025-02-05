@@ -87,106 +87,19 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 40),
+                const SizedBox(height: 100),
                 // 로고 섹션
                 Center(
                   child: Image.asset(
                     'assets/images/logo2.png', // logo2.png 경로
-                    width: 200, // 이미지 너비 조정
-                    height: 200, // 이미지 높이 조정
+                    width: 300, // 이미지 너비 조정
+                    height: 300, // 이미지 높이 조정
                     fit: BoxFit.contain, // 이미지 비율 유지
                   ),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 200),
 
-                // 이메일 입력 필드
-                TextField(
-                  controller: _emailController,
-                  decoration: InputDecoration(
-                    hintText: 'Your Email',
-                    prefixIcon: const Icon(Icons.email_outlined),
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
 
-                // 비밀번호 입력 필드
-                TextField(
-                  controller: _passwordController,
-                  obscureText: !_isPasswordVisible,
-                  decoration: InputDecoration(
-                    hintText: 'Password',
-                    prefixIcon: const Icon(Icons.lock_outline),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _isPasswordVisible ? Icons.visibility_off : Icons.visibility,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _isPasswordVisible = !_isPasswordVisible;
-                        });
-                      },
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-
-                // 아이디/비밀번호 찾기
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {},
-                    child: const Text(
-                      '아이디/비밀번호 찾기',
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                ),
-
-                // 로그인 버튼
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _handleLogin,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      '로그인',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 24),
 
                 // 간편 로그인 섹션
                 const Center(
@@ -234,7 +147,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }) {
     return Container(
       width: double.infinity,
-      height: 48,
+      height: 55,
       decoration: BoxDecoration(
         border: border,
         borderRadius: BorderRadius.circular(12),
