@@ -128,12 +128,10 @@ class _AddClothingPageState extends State<AddClothingPage> {
       try {
         final result = await _analyzer.analyzeClothing(_imageFile!.path);
 
-        setState(() {
-          selectedCategory = result['category'];
-          selectedColor = result['color'];
-          selectedSeasons = Set<String>.from(result['seasons'] ?? ['봄']);
-          _isAnalyzing = false;
-        });
+        // 분석 결과를 임시 변수에 저장
+        final analyzedCategory = result['category'];
+        final analyzedColor = result['color'];
+        final analyzedSeasons = Set<String>.from(result['seasons'] ?? ['봄']);
 
         if (mounted) {
           showDialog(
@@ -165,15 +163,17 @@ class _AddClothingPageState extends State<AddClothingPage> {
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () {
+                    Navigator.pop(context); // 그냥 닫기만 하고 상태 변경하지 않음
+                  },
                   child: Text('취소'),
                 ),
                 TextButton(
                   onPressed: () {
                     setState(() {
-                      selectedCategory = result['category'];
-                      selectedColor = result['color'];
-                      selectedSeasons = Set<String>.from(result['seasons'] ?? ['봄']);
+                      selectedCategory = analyzedCategory;
+                      selectedColor = analyzedColor;
+                      selectedSeasons = analyzedSeasons;
                     });
                     Navigator.pop(context);
                   },
@@ -197,6 +197,7 @@ class _AddClothingPageState extends State<AddClothingPage> {
       }
     }
   }
+
 
   Future<File?> _processImageSegmentation(File imageFile) async {
     try {
