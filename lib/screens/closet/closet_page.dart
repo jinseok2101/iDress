@@ -428,19 +428,8 @@ class _ClosetPageState extends State<ClosetPage> {
 
                   if (!widget.selectionMode)
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        Row(
-                          children: [
-                            Text(
-                              '수량 (${filteredClothing.length})',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.black,
-                              ),
-                            ),
-                          ],
-                        ),
                         TextButton.icon(
                           onPressed: () {
                             setState(() {
