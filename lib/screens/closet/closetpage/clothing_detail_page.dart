@@ -260,6 +260,7 @@ class _ClothingDetailPageState extends State<ClothingDetailPage> {
           TextField(
             controller: controller,
             maxLines: maxLines,
+            keyboardType: label == '사이즈' ? TextInputType.number : TextInputType.text,
             decoration: InputDecoration(
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
