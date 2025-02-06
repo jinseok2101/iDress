@@ -14,7 +14,6 @@ class InformationPage extends StatefulWidget {
 class _InformationPageState extends State<InformationPage> {
   String username = '';  // 사용자 이름
   String phone = '';  // 전화번호
-  String id = '';  // 사용자의 ID
   bool isLoading = true;  // 로딩 상태
 
   @override
@@ -37,7 +36,6 @@ class _InformationPageState extends State<InformationPage> {
           setState(() {
             username = data['username'] ?? '';  // 사용자 이름
             phone = data['phone'] ?? '';  // 전화번호
-            id = data['id'] ?? '';  // 사용자의 ID
             isLoading = false;  // 데이터 로드 완료
           });
         }
@@ -122,29 +120,7 @@ class _InformationPageState extends State<InformationPage> {
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
 
-              // 사용자 ID 표시
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'ID:',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  Text(
-                    id,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ],
-              ),
               const SizedBox(height: 20),
             ],
           ),

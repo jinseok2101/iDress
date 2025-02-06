@@ -263,41 +263,7 @@ class Auth {
     }
   }
 
-  // 비밀번호 기반 로그인
-  Future<bool> signInWithID(String id, String password) async {
-    try {
-      final databaseRef = FirebaseDatabase.instance.ref("users");
-      final snapshot = await databaseRef.orderByChild("id").equalTo(id).get();
 
-      if (snapshot.exists) {
-        final userData = Map<String, dynamic>.from(snapshot.value as Map);
-        final userKey = userData.keys.first;
-        final userInfo = userData[userKey] as Map<String, dynamic>;
-
-        final hashedPassword = hashPassword(password);
-
-        // 수정된 부분: 데이터베이스의 passwordHash와 비교
-        if (userInfo['passwordHash'] == hashedPassword) {
-          debugPrint('로그인 성공: $id');
-          return true;
-        } else {
-          debugPrint('로그인 실패: 비밀번호가 일치하지 않습니다.');
-        }
-      } else {
-        debugPrint('로그인 실패: 사용자 $id를 찾을 수 없습니다.');
-      }
-      return false;
-    } catch (e) {
-      debugPrint('ID 로그인 오류: $e');
-      return false;
-    }
-  }
-
-  // 비밀번호 해시화
-  String hashPassword(String password) {
-    final bytes = utf8.encode(password);
-    return sha256.convert(bytes).toString();
-  }
 
   Future<void> _storeUserInfoInPrefs(firebase_auth.User user, String? token) async {
     final prefs = await SharedPreferences.getInstance();

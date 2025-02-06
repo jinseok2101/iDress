@@ -14,7 +14,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final Auth _authService = Auth();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isPasswordVisible = false;
+
 
   @override
   void initState() {
@@ -42,18 +42,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _handleLogin() async {
-    final id = _emailController.text.trim();
-    final password = _passwordController.text.trim();
 
-    if (await _authService.signInWithID(id, password)) {
-      debugPrint('로그인 성공');
-      context.go('/home'); // 로그인 성공 시 홈 화면으로 이동
-    } else {
-      debugPrint('로그인 실패: ID = $id, 비밀번호 불일치');
-      _showErrorSnackbar('로그인 정보가 올바르지 않습니다.');
-    }
-  }
 
   Future<void> _handleGoogleSignIn() async {
     try {
