@@ -55,6 +55,12 @@ class _ClosetPageState extends State<ClosetPage> {
   void initState() {
     super.initState();
     _initializeChildData();
+
+    // selectionMode일 때 자동으로 카테고리 설정
+    if (widget.selectionMode && widget.allowedCategory != null) {
+      selectedCategory = widget.allowedCategory!;
+      selectedFilter = '카테고리';
+    }
   }
 
   @override
@@ -314,22 +320,30 @@ class _ClosetPageState extends State<ClosetPage> {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        if (selectedFilter == '카테고리')
-                          Row(
-                            children: [
-                              _buildCategoryButton('전체'),
-                              SizedBox(width: 16),
-                              _buildCategoryButton('올인원'),
-                              SizedBox(width: 16),
-                              _buildCategoryButton('아우터'),
-                              SizedBox(width: 16),
-                              _buildCategoryButton('상의'),
-                              SizedBox(width: 16),
-                              _buildCategoryButton('하의'),
-                              SizedBox(width: 16),
-                              _buildCategoryButton('신발'),
-                            ],
-                          )
+                        if (selectedFilter == '카테고리') ...[
+                          // selectionMode가 true일 때는 카테고리 UI만 숨기고 기능은 유지
+                          if (!widget.selectionMode) ...[
+                            _buildCategoryButton('전체'),
+                            SizedBox(width: 16),
+                            _buildCategoryButton('올인원'),
+                            SizedBox(width: 16),
+                            _buildCategoryButton('아우터'),
+                            SizedBox(width: 16),
+                            _buildCategoryButton('상의'),
+                            SizedBox(width: 16),
+                            _buildCategoryButton('하의'),
+                            SizedBox(width: 16),
+                            _buildCategoryButton('신발'),
+                          ],
+                          // selectedCategory와 필터링 로직은 그대로 유지
+                          if (widget.selectionMode) ...[
+                            // UI는 숨기지만 selectedCategory는 widget.allowedCategory로 자동 설정
+                            Container(
+                              height: 0,
+                              child: Text('', style: TextStyle(height: 0)),
+                            ),
+                          ],
+                        ]
                         else if (selectedFilter == '계절')
                           Row(
                             children: seasons.map((season) {
