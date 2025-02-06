@@ -216,6 +216,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       decoration: InputDecoration(
         labelText: '사용할 닉네임',
         prefixIcon: const Icon(Icons.account_circle_outlined),
+
         filled: true,
         fillColor: Colors.grey.shade50,
         border: OutlineInputBorder(
