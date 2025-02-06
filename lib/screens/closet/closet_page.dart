@@ -5,6 +5,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'closetpage/add_clothing_page.dart';
 import 'closetpage/clothing_detail_page.dart';
 import 'closetpage/weather_widget.dart';
+import 'closetpage/school_schedule_widget.dart';
 
 class ClosetPage extends StatefulWidget {
   final Map<String, dynamic> childInfo;
@@ -242,9 +243,15 @@ class _ClosetPageState extends State<ClosetPage> {
                         ),
                       ],
                     ),
-                    SizedBox(width: 32),
+                    const SizedBox(width: 16),
                     Expanded(
-                      child: WeatherWidget(),
+                      child: Column(
+                        children: [
+                          WeatherWidget(),
+                          SizedBox(height: 8),
+                          SchoolScheduleWidget(),
+                        ],
+                      ),
                     ),
                   ],
                 ),
