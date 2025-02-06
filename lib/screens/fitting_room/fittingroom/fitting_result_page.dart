@@ -15,6 +15,7 @@ class FittingResultPage extends StatefulWidget {
   final bool isOnepiece;
   final bool isFromCloset;
   final File? processedImage;
+  final List<File>? similarImages; // 추가
 
   const FittingResultPage({
     Key? key,
@@ -24,6 +25,7 @@ class FittingResultPage extends StatefulWidget {
     this.isOnepiece = false,
     this.isFromCloset = false,
     this.processedImage,
+    this.similarImages,
   }) : super(key: key);
 
   @override
@@ -377,45 +379,45 @@ class _FittingResultPageState extends State<FittingResultPage> {
                 children: [
                   _buildMainImage(),  // 수정된 부분: 메인 이미지 표시
 
-                  // 하단의 작은 이미지들 (원본 이미지들)
-                  Container(
-                    margin: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (widget.topImage != null)
-                          Container(
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey[300]!),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: _buildImage(widget.topImage),
-                            ),
-                          ),
-                        if (!widget.isOnepiece && widget.bottomImage != null) ...[
-                          SizedBox(width: 8),
-                          Icon(Icons.add, color: Colors.grey, size: 20),
-                          SizedBox(width: 8),
-                          Container(
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey[300]!),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: _buildImage(widget.bottomImage),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
+                  // // 하단의 작은 이미지들 (원본 이미지들)
+                  // Container(
+                  //   margin: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                  //   child: Row(
+                  //     mainAxisAlignment: MainAxisAlignment.center,
+                  //     children: [
+                  //       if (widget.topImage != null)
+                  //         Container(
+                  //           width: 60,
+                  //           height: 60,
+                  //           decoration: BoxDecoration(
+                  //             border: Border.all(color: Colors.grey[300]!),
+                  //             borderRadius: BorderRadius.circular(8),
+                  //           ),
+                  //           child: ClipRRect(
+                  //             borderRadius: BorderRadius.circular(8),
+                  //             child: _buildImage(widget.topImage),
+                  //           ),
+                  //         ),
+                  //       if (!widget.isOnepiece && widget.bottomImage != null) ...[
+                  //         SizedBox(width: 8),
+                  //         Icon(Icons.add, color: Colors.grey, size: 20),
+                  //         SizedBox(width: 8),
+                  //         Container(
+                  //           width: 60,
+                  //           height: 60,
+                  //           decoration: BoxDecoration(
+                  //             border: Border.all(color: Colors.grey[300]!),
+                  //             borderRadius: BorderRadius.circular(8),
+                  //           ),
+                  //           child: ClipRRect(
+                  //             borderRadius: BorderRadius.circular(8),
+                  //             child: _buildImage(widget.bottomImage),
+                  //           ),
+                  //         ),
+                  //       ],
+                  //     ],
+                  //   ),
+                  // ),
 
                   // 유사 스타일 추천 섹션
                   Container(
@@ -431,87 +433,44 @@ class _FittingResultPageState extends State<FittingResultPage> {
                           ),
                         ),
                         SizedBox(height: 12),
-                        SizedBox(
+                        // similarImages가 null이 아니고 비어있지 않으면 추천 이미지를 표시
+                        widget.similarImages != null && widget.similarImages!.isNotEmpty
+                            ? SizedBox(
                           height: 200,
-                          child: StreamBuilder(
-                            stream: FirebaseDatabase.instance
-                                .ref()
-                                .child('users')
-                                .child(FirebaseAuth.instance.currentUser?.uid ?? '')
-                                .child('children')
-                                .child(widget.childInfo['childId'])
-                                .child('clothing')
-                                .child(widget.isOnepiece ? '올인원' : '상의')
-                                .onValue,
-                            builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
-                              if (!snapshot.hasData || snapshot.data?.snapshot.value == null) {
-                                return Center(child: Text('추천 항목이 없습니다'));
-                              }
-
-                              Map<dynamic, dynamic> clothes =
-                              snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
-                              List<MapEntry<dynamic, dynamic>> clothesList =
-                              clothes.entries.toList();
-
-                              return ListView.builder(
-                                scrollDirection: Axis.horizontal,
-                                itemCount: clothesList.length,
-                                itemBuilder: (context, index) {
-                                  final clothing = clothesList[index].value;
-                                  return Container(
-                                    width: 120,
-                                    margin: EdgeInsets.only(right: 12),
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: Colors.grey[300]!),
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Expanded(
-                                          child: ClipRRect(
-                                            borderRadius: BorderRadius.vertical(
-                                              top: Radius.circular(8),
-                                            ),
-                                            child: Image.network(
-                                              clothing['imageUrl'],
-                                              fit: BoxFit.cover,
-                                              width: double.infinity,
-                                            ),
-                                          ),
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: widget.similarImages!.length,
+                            itemBuilder: (context, index) {
+                              final imageFile = widget.similarImages![index];
+                              return Container(
+                                width: 120,
+                                margin: EdgeInsets.only(right: 12),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.grey[300]!),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.vertical(
+                                          top: Radius.circular(8),
                                         ),
-                                        Padding(
-                                          padding: EdgeInsets.all(8),
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                clothing['name'] ?? '',
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                              Text(
-                                                'Size: ${clothing['size'] ?? ''}',
-                                                style: TextStyle(
-                                                  color: Colors.grey[600],
-                                                  fontSize: 10,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
+                                        child: Image.file(
+                                          imageFile,
+                                          fit: BoxFit.cover,
+                                          width: double.infinity,
                                         ),
-                                      ],
+                                      ),
                                     ),
-                                  );
-                                },
+                                  ],
+                                ),
                               );
                             },
                           ),
-                        ),
+                        )
+                            : Center(child: Text('추천 이미지가 없습니다')),
                       ],
                     ),
                   ),

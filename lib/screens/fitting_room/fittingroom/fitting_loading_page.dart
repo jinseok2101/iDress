@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:archive/archive.dart'; // ZIP 파일 해제용 패키지
 import 'package:path_provider/path_provider.dart';
 import 'fitting_result_page.dart';
 
@@ -41,7 +42,7 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
     return tempFile.path;
   }
 
-  Future<File> _tryOn() async {
+  Future<List<File>> _tryOn() async {
     if (widget.childInfo['fullBodyImageUrl'] == null) {
       throw Exception('아이의 전신 이미지가 없습니다.');
     }
@@ -59,8 +60,7 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
       }
     }
 
-
-    final url = 'http://34.47.104.167/try-on';
+    final url = 'http://34.47.87.56/try-on';
     var request = http.MultipartRequest('POST', Uri.parse(url));
 
     try {
@@ -68,10 +68,11 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
       final humanImagePath = await _downloadImage(widget.childInfo['fullBodyImageUrl']);
       request.files.add(await http.MultipartFile.fromPath('human_image', humanImagePath));
 
-      File? tempFile;
+      List<File> resultFiles = [];
+      final tempDir = await getTemporaryDirectory();
 
       if (widget.clothType == '상의+하의') {
-        final fullOutfitUrl = 'http://34.47.104.167/try-on-full-outfit';
+        final fullOutfitUrl = 'http://34.47.87.56/try-on-full-outfit';
         var fullRequest = http.MultipartRequest('POST', Uri.parse(fullOutfitUrl));
 
         fullRequest.files.add(await http.MultipartFile.fromPath('human_image', humanImagePath));
@@ -95,10 +96,19 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
         final response = await fullRequest.send();
         print('응답 코드: ${response.statusCode}');
 
-        final tempDir = await getTemporaryDirectory();
-        tempFile = File('${tempDir.path}/result.png');
-        await response.stream.pipe(tempFile.openWrite());
+        // ZIP 파일 처리
+        final bytes = await response.stream.toBytes();
+        final archive = ZipDecoder().decodeBytes(bytes);
 
+        for (final file in archive) {
+          if (file.isFile) {
+            final filename = file.name;
+            final data = file.content as List<int>;
+            final outFile = File('${tempDir.path}/$filename');
+            await outFile.writeAsBytes(data);
+            resultFiles.add(outFile);
+          }
+        }
       } else {
         // 단일 의류 처리
         String? imagePath;
@@ -116,10 +126,9 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
           request.files.add(await http.MultipartFile.fromPath('garment_image', imagePath));
         }
 
-        // 서버에 전송할 의류 타입 결정
         String serverClothType = widget.clothType == '하의' ? 'lower_body' :
         widget.clothType == '올인원' ? 'jumpsuit' :
-        'upper_body';  // 상의와 아우터는 모두 upper_body로 처리
+        'upper_body';
 
         request.fields['cloth_type'] = serverClothType;
         print('cloth_type: $serverClothType');
@@ -133,13 +142,22 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
           throw Exception('서버 에러: ${response.statusCode}');
         }
 
-        final tempDir = await getTemporaryDirectory();
-        tempFile = File('${tempDir.path}/result.png');
-        await response.stream.pipe(tempFile.openWrite());
+        // ZIP 파일 처리
+        final bytes = await response.stream.toBytes();
+        final archive = ZipDecoder().decodeBytes(bytes);
+
+        for (final file in archive) {
+          if (file.isFile) {
+            final filename = file.name;
+            final data = file.content as List<int>;
+            final outFile = File('${tempDir.path}/$filename');
+            await outFile.writeAsBytes(data);
+            resultFiles.add(outFile);
+          }
+        }
       }
 
-      return tempFile;
-
+      return resultFiles;
     } catch (e) {
       print('에러 발생: $e');
       rethrow;
@@ -149,7 +167,7 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
   @override
   void initState() {
     super.initState();
-    _tryOn().then((resultImage) {
+    _tryOn().then((resultFiles) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -157,7 +175,8 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
             childInfo: widget.childInfo,
             topImage: widget.topImage,
             bottomImage: widget.bottomImage,
-            processedImage: resultImage,
+            processedImage: resultFiles[0], // tryon_result.png
+            similarImages: resultFiles.sublist(1), // similar_1.png, similar_2.png, similar_3.png
             isOnepiece: widget.isOnepiece,
             isFromCloset: widget.isFromCloset,
           ),
