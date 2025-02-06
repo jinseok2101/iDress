@@ -36,7 +36,7 @@ class _ClosetPageState extends State<ClosetPage> {
   String selectedColor = '전체';
   final TextEditingController _searchController = TextEditingController();
 
-  final List<String> filterTypes = ['카테고리', '계절', '색상'];
+  final List<String> filterTypes = ['카테고리', '계절', '색상','즐겨찾기'];
   final List<String> seasons = ['전체', '봄', '여름', '가을', '겨울', '사계절'];
 
   final Map<String, String> categoryImages = {
@@ -55,6 +55,12 @@ class _ClosetPageState extends State<ClosetPage> {
   void initState() {
     super.initState();
     _initializeChildData();
+
+    // selectionMode일 때 자동으로 카테고리 설정
+    if (widget.selectionMode && widget.allowedCategory != null) {
+      selectedCategory = widget.allowedCategory!;
+      selectedFilter = '카테고리';
+    }
   }
 
   @override
@@ -131,6 +137,14 @@ class _ClosetPageState extends State<ClosetPage> {
       clothing = clothing.where((entry) {
         final item = entry.value as Map<dynamic, dynamic>;
         return item['color'] == selectedColor;
+      }).toList();
+    }
+
+    // 즐겨찾기 필터링 추가
+    if (selectedFilter == '즐겨찾기') {
+      clothing = clothing.where((entry) {
+        final item = entry.value as Map<dynamic, dynamic>;
+        return item['isFavorite'] == true;
       }).toList();
     }
 
@@ -242,84 +256,94 @@ class _ClosetPageState extends State<ClosetPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: filterTypes.map((type) {
-                          bool isSelected = selectedFilter == type;
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 8.0),
-                            child: ChoiceChip(
-                              label: Text(type),
-                              selected: isSelected,
-                              onSelected: (bool selected) {
-                                setState(() {
-                                  if (selected) {
-                                    selectedFilter = type;
+                  // 검색 버튼을 위로 이동
+                  if (!widget.selectionMode)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            isSearchVisible = !isSearchVisible;
+                            if (!isSearchVisible) {
+                              _searchController.clear();
+                            }
+                          });
+                        },
+                        icon: Icon(
+                          Icons.search,
+                          size: 20,
+                          color: Colors.grey[600],
+                        ),
+                        label: Text(
+                          '검색',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        ),
+                      ),
+                    ),
+                  SizedBox(height: 8),
+                  // 필터 옵션들
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: filterTypes.map((type) {
+                        bool isSelected = selectedFilter == type;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8.0),
+                          child: ChoiceChip(
+                            label: Text(type),
+                            selected: isSelected,
+                            onSelected: (bool selected) {
+                              setState(() {
+                                if (selected) {
+                                  selectedFilter = type;
+                                  if (type != '즐겨찾기') {
                                     selectedCategory = '전체';
                                     selectedSeasons = {'전체'};
                                     selectedColor = '전체';
                                   }
-                                });
-                              },
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                      if (!widget.selectionMode)
-                        TextButton.icon(
-                          onPressed: () {
-                            setState(() {
-                              isSearchVisible = !isSearchVisible;
-                              if (!isSearchVisible) {
-                                _searchController.clear();
-                              }
-                            });
-                          },
-                          icon: Icon(
-                            Icons.search,
-                            size: 20,
-                            color: Colors.grey[600],
+                                }
+                              });
+                            },
                           ),
-                          label: Text(
-                            '검색',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          style: TextButton.styleFrom(
-                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          ),
-                        ),
-                    ],
+                        );
+                      }).toList(),
+                    ),
                   ),
                   SizedBox(height: 16),
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        if (selectedFilter == '카테고리')
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                _buildCategoryButton('전체'),
-                                SizedBox(width: 16),
-                                _buildCategoryButton('올인원'),
-                                SizedBox(width: 16),
-                                _buildCategoryButton('아우터'),
-                                SizedBox(width: 16),
-                                _buildCategoryButton('상의'),
-                                SizedBox(width: 16),
-                                _buildCategoryButton('하의'),
-                                SizedBox(width: 16),
-                                _buildCategoryButton('신발',),
-                              ],
+                        if (selectedFilter == '카테고리') ...[
+                          // selectionMode가 true일 때는 카테고리 UI만 숨기고 기능은 유지
+                          if (!widget.selectionMode) ...[
+                            _buildCategoryButton('전체'),
+                            SizedBox(width: 16),
+                            _buildCategoryButton('올인원'),
+                            SizedBox(width: 16),
+                            _buildCategoryButton('아우터'),
+                            SizedBox(width: 16),
+                            _buildCategoryButton('상의'),
+                            SizedBox(width: 16),
+                            _buildCategoryButton('하의'),
+                            SizedBox(width: 16),
+                            _buildCategoryButton('신발'),
+                          ],
+                          // selectedCategory와 필터링 로직은 그대로 유지
+                          if (widget.selectionMode) ...[
+                            // UI는 숨기지만 selectedCategory는 widget.allowedCategory로 자동 설정
+                            Container(
+                              height: 0,
+                              child: Text('', style: TextStyle(height: 0)),
                             ),
-                          )
+                          ],
+                        ]
                         else if (selectedFilter == '계절')
                           Row(
                             children: seasons.map((season) {
@@ -332,10 +356,10 @@ class _ClosetPageState extends State<ClosetPage> {
                                   onSelected: (bool selected) {
                                     setState(() {
                                       if (selected) {
-                                        selectedSeasons.clear(); // 다른 계절을 모두 해제
-                                        selectedSeasons.add(season); // 선택된 계절만 추가
+                                        selectedSeasons.clear();
+                                        selectedSeasons.add(season);
                                       } else {
-                                        selectedSeasons.remove(season); // 선택 해제
+                                        selectedSeasons.remove(season);
                                       }
                                     });
                                   },
@@ -344,22 +368,32 @@ class _ClosetPageState extends State<ClosetPage> {
                             }).toList(),
                           )
                         else if (selectedFilter == '색상')
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
+                            Row(
                               children: [
                                 _buildColorBox('전체', Colors.transparent),
+                                SizedBox(width: 8),
                                 _buildColorBox('흰색', Colors.white),
+                                SizedBox(width: 8),
                                 _buildColorBox('검정', Colors.black),
-                                _buildColorBox('빨강', Colors.red),
-                                _buildColorBox('주황', Colors.orange),
-                                _buildColorBox('노랑', Colors.yellow),
-                                _buildColorBox('초록', Colors.green),
-                                _buildColorBox('파랑', Colors.blue),
-                                _buildColorBox('남색', Colors.indigo),
-                                _buildColorBox('보라', Colors.purple),
+                                SizedBox(width: 8),
                                 _buildColorBox('회색', Colors.grey),
+                                SizedBox(width: 8),
+                                _buildColorBox('빨강', Colors.red),
+                                SizedBox(width: 8),
                                 _buildColorBox('분홍', Colors.pink),
+                                SizedBox(width: 8),
+                                _buildColorBox('주황', Colors.orange),
+                                SizedBox(width: 8),
+                                _buildColorBox('노랑', Colors.yellow),
+                                SizedBox(width: 8),
+                                _buildColorBox('초록', Colors.green),
+                                SizedBox(width: 8),
+                                _buildColorBox('파랑', Colors.blue),
+                                SizedBox(width: 8),
+                                _buildColorBox('남색', Colors.indigo),
+                                SizedBox(width: 8),
+                                _buildColorBox('보라', Colors.purple),
+                                SizedBox(width: 8),
                                 _buildColorBox('갈색', Colors.brown),
                               ],
                             ),
@@ -408,19 +442,8 @@ class _ClosetPageState extends State<ClosetPage> {
 
                   if (!widget.selectionMode)
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween, // 좌우로 배치
+                      mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        Row(
-                          children: [
-                            Text(
-                              '수량 (${filteredClothing.length})', // 수량 텍스트
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.black,
-                              ),
-                            ),
-                          ],
-                        ),
                         TextButton.icon(
                           onPressed: () {
                             setState(() {
@@ -479,7 +502,6 @@ class _ClosetPageState extends State<ClosetPage> {
                     }
                   });
 
-                  // 검색어와 선택된 필터로 필터링 적용
                   if (isSearchVisible && _searchController.text.isNotEmpty) {
                     filteredClothing = filterClothing(filteredClothing, _searchController.text);
                   } else {
@@ -491,6 +513,8 @@ class _ClosetPageState extends State<ClosetPage> {
                       child: Text(
                         isSearchVisible && _searchController.text.isNotEmpty
                             ? '검색 결과가 없습니다'
+                            : selectedFilter == '즐겨찾기'
+                            ? '즐겨찾기한 옷이 없습니다'
                             : '${selectedFilter == '카테고리' ? selectedCategory : selectedFilter == '계절' ? selectedSeasons.join(', ') : selectedColor}에 해당하는 옷이 없습니다',
                         style: TextStyle(
                           color: Colors.grey[600],
@@ -514,8 +538,8 @@ class _ClosetPageState extends State<ClosetPage> {
                       final String itemKey = entry.key;
                       final Map<dynamic, dynamic> itemData = entry.value;
                       bool isSelected = selectedItems.contains(itemKey);
+                      bool isFavorite = itemData['isFavorite'] ?? false;
 
-                      int quantity = itemData['quantity'] ?? 0;
 
                       return Stack(
                         children: [
@@ -578,6 +602,24 @@ class _ClosetPageState extends State<ClosetPage> {
                                         fit: BoxFit.cover,
                                       ),
                                     ),
+                                    // 즐겨찾기 아이콘 추가
+                                    if (isFavorite)
+                                      Positioned(
+                                        left: 8,
+                                        top: 8,
+                                        child: Container(
+                                          padding: EdgeInsets.all(4),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withOpacity(0.8),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(
+                                            Icons.favorite,
+                                            color: Colors.red,
+                                            size: 16,
+                                          ),
+                                        ),
+                                      ),
                                     Positioned(
                                       left: 0,
                                       right: 0,

@@ -20,8 +20,6 @@ Future<void> saveUserToFirebase({
   required String uid,
   required String username,
   required String phone,
-  String? id,
-  String? passwordHash,
   String? profileImageUrl,
 }) async {
   final databaseRef = FirebaseDatabase.instance.ref("users/$uid");
@@ -30,38 +28,63 @@ Future<void> saveUserToFirebase({
   await databaseRef.set({
     "username": username,
     "phone": phone,
-    if (id != null) "id": id,
-    if (passwordHash != null) "passwordHash": passwordHash,
     "createdAt": timestamp,
     if (profileImageUrl != null) "profileImageUrl": profileImageUrl,
   });
 }
 
 class _SignupScreenState extends ConsumerState<SignupScreen> {
-  final String _userId = FirebaseAuth.instance.currentUser?.uid ?? '';  // 클래스 멤버 변수로 이동
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _idController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
 
   bool _isLoading = false;
+  bool _isUsernameDuplicated = true; // 닉네임 중복 여부 상태 추가
   XFile? _profileImage;
 
   @override
   void dispose() {
     _usernameController.dispose();
     _phoneController.dispose();
-    _idController.dispose();
-    _passwordController.dispose();
-    _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  // 닉네임 중복 검사 함수 수정
+  Future<bool> isUsernameDuplicated(String username) async {
+    try {
+      final databaseRef = FirebaseDatabase.instance.ref("users");
+      // 모든 사용자 데이터를 가져옴
+      final snapshot = await databaseRef.get();
+
+      if (!snapshot.exists) return false;
+
+      // 데이터를 Map으로 변환
+      final data = snapshot.value as Map<dynamic, dynamic>;
+
+      // 모든 사용자를 순회하면서 username 비교
+      bool isDuplicated = false;
+      data.forEach((key, value) {
+        if (value is Map && value['username'] == username) {
+          isDuplicated = true;
+        }
+      });
+
+      debugPrint('닉네임 중복 검사 결과: $isDuplicated');
+      return isDuplicated;
+
+    } catch (e) {
+      debugPrint('닉네임 중복 확인 중 오류 발생: $e');
+      return false; // 에러 발생 시 false 반환하도록 수정
+    }
   }
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery,
+      imageQuality: 50,
+      maxWidth: 400,
+      maxHeight: 400,
+    );
     if (pickedFile != null) {
       setState(() {
         _profileImage = pickedFile;
@@ -71,20 +94,15 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
   Future<String?> _uploadImageToFirebase(XFile imageFile) async {
     try {
-      // 현재 사용자 ID 확인
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception('사용자가 인증되지 않았습니다.');
-      final userId = user.uid;
 
-      // Storage 참조 생성
       final storageRef = FirebaseStorage.instance
           .ref()
           .child('users')
-          .child(userId)
           .child('parent_profile_images')
           .child('profile_${DateTime.now().millisecondsSinceEpoch}.jpg');
 
-      // 메타데이터 설정
       final metadata = SettableMetadata(
         contentType: 'image/jpeg',
         customMetadata: {
@@ -93,29 +111,19 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
         },
       );
 
-      // 이미지 업로드
       final uploadTask = await storageRef.putFile(
         File(imageFile.path),
         metadata,
       );
 
-      // 업로드 성공 시 다운로드 URL 반환
       if (uploadTask.state == TaskState.success) {
-        final downloadUrl = await storageRef.getDownloadURL();
-        return downloadUrl;
+        return await storageRef.getDownloadURL();
       }
-
       return null;
     } catch (e) {
       debugPrint('프로필 이미지 업로드 실패: $e');
-      rethrow; // 에러를 상위로 전달하여 적절한 에러 처리가 가능하도록 함
+      rethrow;
     }
-  }
-
-  Future<bool> isIdDuplicated(String id) async {
-    final databaseRef = FirebaseDatabase.instance.ref("users");
-    final snapshot = await databaseRef.orderByChild("id").equalTo(id).get();
-    return snapshot.exists;
   }
 
   Future<void> _submitForm() async {
@@ -124,65 +132,71 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // 현재 인증된 사용자 확인
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
         throw Exception('사용자가 인증되지 않았습니다.');
       }
 
-      // ID 중복 확인
-      final isDuplicate = await isIdDuplicated(_idController.text);
-      if (isDuplicate) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('이미 사용 중인 ID입니다. 다른 ID를 입력해주세요.'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-        return;
-      }
+      final username = _usernameController.text.trim();
 
-      // 프로필 이미지 업로드
+      // 병렬 처리를 위한 Future 리스트 생성
+      final futures = <Future>[];
+
+      // 1. 닉네임 중복 검사
+      futures.add(
+          isUsernameDuplicated(username).then((isDuplicated) {
+            if (isDuplicated) {
+              throw Exception('이미 사용 중인 닉네임입니다.');
+            }
+          })
+      );
+
+      // 2. 이미지 업로드 (있는 경우에만)
       String? profileImageUrl;
       if (_profileImage != null) {
-        try {
-          profileImageUrl = await _uploadImageToFirebase(_profileImage!);
-          if (profileImageUrl == null) {
-            throw Exception('이미지 업로드에 실패했습니다.');
-          }
-        } catch (e) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('프로필 이미지 업로드 실패: ${e.toString()}'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-          // 이미지 업로드 실패 시에도 계정 생성은 진행
-        }
+        futures.add(
+            _uploadImageToFirebase(_profileImage!).then((url) {
+              profileImageUrl = url;
+            })
+        );
       }
 
-      // 사용자 정보 저장
+      // 3. 전화번호 형식 검증
+      futures.add(
+          Future(() {
+            final phoneRegExp = RegExp(r'^\d{3}-\d{3,4}-\d{4}$');
+            if (!phoneRegExp.hasMatch(_phoneController.text.trim())) {
+              throw Exception('올바른 전화번호 형식이 아닙니다.');
+            }
+          })
+      );
+
+      // 모든 병렬 작업 실행 및 대기
+      await Future.wait(futures);
+
+      // 4. 사용자 정보 저장 (병렬 작업들이 모두 완료된 후)
       await saveUserToFirebase(
         uid: user.uid,
-        username: _usernameController.text,
-        phone: _phoneController.text,
-        id: _idController.text,
-        passwordHash: Auth().hashPassword(_passwordController.text),
+        username: username,
+        phone: _phoneController.text.trim(),
         profileImageUrl: profileImageUrl,
       );
 
       if (mounted) {
+        // 성공 메시지 표시
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('회원가입이 완료되었습니다.'),
+            backgroundColor: Colors.green,
+          ),
+        );
         context.go('/home');
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('회원가입 중 오류가 발생했습니다: ${e.toString()}'),
+            content: Text(e.toString().replaceAll('Exception: ', '')),
             backgroundColor: Colors.red,
           ),
         );
@@ -194,12 +208,15 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     }
   }
 
-  Widget _buildIdInputField() {
+
+// _buildUsernameInputField 함수 수정
+  Widget _buildUsernameInputField() {
     return TextFormField(
-      controller: _idController,
+      controller: _usernameController,
       decoration: InputDecoration(
-        labelText: '사용할 ID',
+        labelText: '사용할 닉네임',
         prefixIcon: const Icon(Icons.account_circle_outlined),
+
         filled: true,
         fillColor: Colors.grey.shade50,
         border: OutlineInputBorder(
@@ -207,33 +224,65 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
           borderSide: BorderSide(color: Colors.grey.shade200),
         ),
         suffixIcon: IconButton(
-          icon: const Icon(Icons.check_circle_outline),
+          icon: Icon(
+            Icons.check_circle_outline,
+            color: _isUsernameDuplicated ? Colors.grey : Colors.green,
+          ),
           onPressed: () async {
-            if (_idController.text.isEmpty) {
+            final username = _usernameController.text.trim();
+
+            if (username.isEmpty) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('ID를 입력해주세요')),
+                const SnackBar(
+                  content: Text('닉네임을 입력해주세요'),
+                  backgroundColor: Colors.red,
+                ),
               );
               return;
             }
 
-            bool isDuplicated = await isIdDuplicated(_idController.text);
-            if (isDuplicated) {
+            final idRegExp = RegExp(r'^[가-힣a-zA-Z0-9]+$');
+            if (!idRegExp.hasMatch(username)) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('닉네임은 한글, 영문, 숫자만 사용 가능합니다'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+              return;
+            }
+
+            setState(() => _isLoading = true);
+
+            try {
+              final isDuplicated = await isUsernameDuplicated(username);
+
+              setState(() {
+                _isUsernameDuplicated = isDuplicated;
+              });
+
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      isDuplicated ? '이미 사용 중인 닉네임입니다.' : '사용 가능한 닉네임입니다.',
+                    ),
+                    backgroundColor: isDuplicated ? Colors.red : Colors.green,
+                  ),
+                );
+              }
+            } catch (e) {
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('이미 사용 중인 ID입니다. 다른 ID를 입력해주세요.'),
+                    content: Text('닉네임 중복 확인 중 오류가 발생했습니다.'),
                     backgroundColor: Colors.red,
                   ),
                 );
               }
-            } else {
+            } finally {
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('사용 가능한 ID입니다.'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
+                setState(() => _isLoading = false);
               }
             }
           },
@@ -241,13 +290,17 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       ),
       validator: (value) {
         if (value == null || value.isEmpty) {
-          return 'ID를 입력해주세요';
+          return '닉네임을 입력해주세요';
         }
         final idRegExp = RegExp(r'^[가-힣a-zA-Z0-9]+$');
         if (!idRegExp.hasMatch(value)) {
           return '한글, 영문, 숫자만 사용 가능합니다';
         }
         return null;
+      },
+      onChanged: (value) {
+        // 닉네임이 변경되면 중복 확인 상태 초기화
+        setState(() => _isUsernameDuplicated = true);
       },
     );
   }
@@ -274,27 +327,13 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 48),
+
                   _buildImagePicker(),
                   const SizedBox(height: 24),
-                  _buildInputField(
-                    controller: _usernameController,
-                    label: '닉네임',
-                    prefixIcon: Icons.person_outline,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return '닉네임을 입력해주세요';
-                      }
-                      if (value.length < 2) {
-                        return '닉네임은 2자 이상이어야 합니다';
-                      }
-                      final nameRegExp = RegExp(r'^[가-힣a-zA-Z0-9]+$');
-                      if (!nameRegExp.hasMatch(value)) {
-                        return '한글, 영문, 숫자만 사용 가능합니다';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
+
+                  _buildUsernameInputField(),
+                  const SizedBox(height: 24),
+
                   _buildInputField(
                     controller: _phoneController,
                     label: '전화번호',
@@ -312,40 +351,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  _buildIdInputField(), // 수정된 ID 입력 필드
-                  const SizedBox(height: 16),
-                  _buildInputField(
-                    controller: _passwordController,
-                    label: '비밀번호',
-                    prefixIcon: Icons.lock_outline,
-                    obscureText: true,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return '비밀번호를 입력해주세요';
-                      }
-                      if (value.length < 6) {
-                        return '비밀번호는 6자 이상이어야 합니다';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  _buildInputField(
-                    controller: _confirmPasswordController,
-                    label: '비밀번호 확인',
-                    prefixIcon: Icons.lock_outline,
-                    obscureText: true,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return '비밀번호를 다시 입력해주세요';
-                      }
-                      if (value != _passwordController.text) {
-                        return '비밀번호가 일치하지 않습니다';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 40),
+
                   SizedBox(
                     height: 56,
                     child: ElevatedButton(

@@ -28,6 +28,7 @@ class ClothingDetailPage extends StatefulWidget {
 }
 
 class _ClothingDetailPageState extends State<ClothingDetailPage> {
+  bool isFavorite = false;
   bool isEditing = false;
   late TextEditingController nameController;
   late TextEditingController sizeController;
@@ -58,6 +59,7 @@ class _ClothingDetailPageState extends State<ClothingDetailPage> {
     nameController = TextEditingController(text: widget.clothing['name'] ?? '');
     sizeController = TextEditingController(text: widget.clothing['size'] ?? '');
     memoController = TextEditingController(text: widget.clothing['memo'] ?? '');
+    isFavorite = widget.clothing['isFavorite'] ?? false;  // 즐겨찾기 상태 초기화
 
     // season 데이터 처리
     if (widget.clothing['season'] is List) {
@@ -110,6 +112,7 @@ class _ClothingDetailPageState extends State<ClothingDetailPage> {
         'season': selectedSeasons.toList(),
         'color': colorName,
         'memo': memoController.text,
+        'isFavorite': isFavorite,
         'lastModified': ServerValue.timestamp,
       };
 
@@ -165,6 +168,30 @@ class _ClothingDetailPageState extends State<ClothingDetailPage> {
           ),
         ),
         actions: [
+          // 즐겨찾기 버튼 추가
+          IconButton(
+            icon: Icon(
+              isFavorite ? Icons.favorite : Icons.favorite_border,
+              color: isFavorite ? Colors.red : Colors.grey,
+            ),
+            onPressed: () async {
+              if (_clothingRef != null) {
+                final newValue = !isFavorite;
+                await _clothingRef!.update({'isFavorite': newValue});
+                setState(() {
+                  isFavorite = newValue;
+                });
+
+                // 스낵바로 상태 변경 알림
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(newValue ? '즐겨찾기에 추가되었습니다' : '즐겨찾기가 해제되었습니다'),
+                    duration: Duration(seconds: 1),
+                  ),
+                );
+              }
+            },
+          ),
           if (!isEditing)
             IconButton(
               icon: Icon(Icons.edit, color: Colors.black),
@@ -260,6 +287,7 @@ class _ClothingDetailPageState extends State<ClothingDetailPage> {
           TextField(
             controller: controller,
             maxLines: maxLines,
+            keyboardType: label == '사이즈' ? TextInputType.number : TextInputType.text,
             decoration: InputDecoration(
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),

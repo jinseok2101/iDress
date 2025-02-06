@@ -128,12 +128,10 @@ class _AddClothingPageState extends State<AddClothingPage> {
       try {
         final result = await _analyzer.analyzeClothing(_imageFile!.path);
 
-        setState(() {
-          selectedCategory = result['category'];
-          selectedColor = result['color'];
-          selectedSeasons = Set<String>.from(result['seasons'] ?? ['봄']);
-          _isAnalyzing = false;
-        });
+        // 분석 결과를 임시 변수에 저장
+        final analyzedCategory = result['category'];
+        final analyzedColor = result['color'];
+        final analyzedSeasons = Set<String>.from(result['seasons'] ?? ['봄']);
 
         if (mounted) {
           showDialog(
@@ -165,15 +163,17 @@ class _AddClothingPageState extends State<AddClothingPage> {
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () {
+                    Navigator.pop(context); // 그냥 닫기만 하고 상태 변경하지 않음
+                  },
                   child: Text('취소'),
                 ),
                 TextButton(
                   onPressed: () {
                     setState(() {
-                      selectedCategory = result['category'];
-                      selectedColor = result['color'];
-                      selectedSeasons = Set<String>.from(result['seasons'] ?? ['봄']);
+                      selectedCategory = analyzedCategory;
+                      selectedColor = analyzedColor;
+                      selectedSeasons = analyzedSeasons;
                     });
                     Navigator.pop(context);
                   },
@@ -197,6 +197,7 @@ class _AddClothingPageState extends State<AddClothingPage> {
       }
     }
   }
+
 
   Future<File?> _processImageSegmentation(File imageFile) async {
     try {
@@ -362,9 +363,30 @@ class _AddClothingPageState extends State<AddClothingPage> {
       return;
     }
 
-    if (nameController.text.isEmpty || sizeController.text.isEmpty) {
+    if (selectedCategory == '전체') { // ✅ 카테고리 선택 필수
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('필수 필드를 입력해주세요')),
+        const SnackBar(content: Text('카테고리를 선택해주세요')),
+      );
+      return;
+    }
+
+    if (nameController.text.isEmpty) { // ✅ 이름 입력 필수
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('이름을 입력해주세요')),
+      );
+      return;
+    }
+
+    if (selectedSeasons.isEmpty) { // ✅ 계절 선택 필수
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('계절을 선택해주세요')),
+      );
+      return;
+    }
+
+    if (selectedColor == '미분류') { // ✅ 색상 선택 필수
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('색상을 선택해주세요')),
       );
       return;
     }
@@ -499,13 +521,20 @@ class _AddClothingPageState extends State<AddClothingPage> {
             ),
             SizedBox(height: 40),
 
-            Text(
-              '카테고리',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              children: [
+                Icon(Icons.star, color: Colors.red, size: 18), // 빨간색 별 아이콘
+                SizedBox(width: 4), // 아이콘과 텍스트 사이 간격
+                Text(
+                  '카테고리',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
+
             SizedBox(height: 16),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -565,13 +594,20 @@ class _AddClothingPageState extends State<AddClothingPage> {
 
             SizedBox(height: 40),
 
-            Text(
-              '이름',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              children: [
+                Icon(Icons.star, color: Colors.red, size: 18), // 빨간색 별 아이콘
+                SizedBox(width: 4), // 아이콘과 텍스트 사이 간격
+                Text(
+                  '이름',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
+
             SizedBox(height: 8),
             TextField(
               controller: nameController,
@@ -592,6 +628,7 @@ class _AddClothingPageState extends State<AddClothingPage> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
+
               ),
             ),
             SizedBox(height: 8),
@@ -611,14 +648,22 @@ class _AddClothingPageState extends State<AddClothingPage> {
             ),
             SizedBox(height: 24),
 
-            Text(
-              '계절',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              children: [
+                Icon(Icons.star, color: Colors.red, size: 18), // 빨간색 별 아이콘
+                SizedBox(width: 4), // 아이콘과 텍스트 사이 간격
+                Text(
+                  '계절',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
+
             SizedBox(height: 8),
+            
             Wrap(
               spacing: 8,
               children: ['봄', '여름', '가을', '겨울', '사계절'].map((season) {
@@ -661,13 +706,20 @@ class _AddClothingPageState extends State<AddClothingPage> {
 
             SizedBox(height: 24),
 
-            Text(
-              '색상',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              children: [
+                Icon(Icons.star, color: Colors.red, size: 18), // 빨간색 별 아이콘
+                SizedBox(width: 4), // 아이콘과 텍스트 사이 간격
+                Text(
+                  '색상',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
+
             SizedBox(height: 8),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
