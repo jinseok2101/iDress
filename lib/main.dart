@@ -10,9 +10,9 @@ import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import 'package:last3/screens/closet_main_screen.dart';
 import 'package:last3/screens/home/child_register_screen.dart';
 import 'package:last3/screens/home/home_screen.dart';
-import 'package:last3/screens/my_page.dart';
-import 'package:last3/screens/home/notice_page.dart';
-import 'package:last3/screens/home/information.dart';
+import 'package:last3/screens/home/mypage/my_page.dart';
+import 'package:last3/screens/home/mypage/notice_page.dart';
+import 'package:last3/screens/home/mypage/information.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 

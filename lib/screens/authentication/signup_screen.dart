@@ -80,7 +80,11 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery,
+      imageQuality: 50,
+      maxWidth: 400,
+      maxHeight: 400,
+    );
     if (pickedFile != null) {
       setState(() {
         _profileImage = pickedFile;
@@ -122,24 +126,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     }
   }
 
-  // _submitForm 함수의 중복 검사 부분도 수정
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
-
-    final username = _usernameController.text.trim();
-    final isDuplicated = await isUsernameDuplicated(username);
-
-    if (isDuplicated) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('이미 사용 중인 닉네임입니다. 다른 닉네임을 입력해주세요.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-      return;
-    }
 
     setState(() => _isLoading = true);
 
@@ -149,37 +137,66 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
         throw Exception('사용자가 인증되지 않았습니다.');
       }
 
+      final username = _usernameController.text.trim();
+
+      // 병렬 처리를 위한 Future 리스트 생성
+      final futures = <Future>[];
+
+      // 1. 닉네임 중복 검사
+      futures.add(
+          isUsernameDuplicated(username).then((isDuplicated) {
+            if (isDuplicated) {
+              throw Exception('이미 사용 중인 닉네임입니다.');
+            }
+          })
+      );
+
+      // 2. 이미지 업로드 (있는 경우에만)
       String? profileImageUrl;
       if (_profileImage != null) {
-        try {
-          profileImageUrl = await _uploadImageToFirebase(_profileImage!);
-        } catch (e) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('프로필 이미지 업로드 실패: ${e.toString()}'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        }
+        futures.add(
+            _uploadImageToFirebase(_profileImage!).then((url) {
+              profileImageUrl = url;
+            })
+        );
       }
 
+      // 3. 전화번호 형식 검증
+      futures.add(
+          Future(() {
+            final phoneRegExp = RegExp(r'^\d{3}-\d{3,4}-\d{4}$');
+            if (!phoneRegExp.hasMatch(_phoneController.text.trim())) {
+              throw Exception('올바른 전화번호 형식이 아닙니다.');
+            }
+          })
+      );
+
+      // 모든 병렬 작업 실행 및 대기
+      await Future.wait(futures);
+
+      // 4. 사용자 정보 저장 (병렬 작업들이 모두 완료된 후)
       await saveUserToFirebase(
         uid: user.uid,
-        username: _usernameController.text.trim(),
+        username: username,
         phone: _phoneController.text.trim(),
         profileImageUrl: profileImageUrl,
       );
 
       if (mounted) {
+        // 성공 메시지 표시
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('회원가입이 완료되었습니다.'),
+            backgroundColor: Colors.green,
+          ),
+        );
         context.go('/home');
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('회원가입 중 오류가 발생했습니다: ${e.toString()}'),
+            content: Text(e.toString().replaceAll('Exception: ', '')),
             backgroundColor: Colors.red,
           ),
         );
@@ -190,6 +207,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       }
     }
   }
+
 
 // _buildUsernameInputField 함수 수정
   Widget _buildUsernameInputField() {
