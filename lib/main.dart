@@ -65,7 +65,7 @@ class MyApp extends StatelessWidget {
 
 
       routerConfig: GoRouter(
-        initialLocation: '/main',//initialRoute, // 로그인 상태에 따라 초기 경로 설정
+        initialLocation: initialRoute, // 로그인 상태에 따라 초기 경로 설정
         routes: [
           GoRoute(path: '/start', builder: (context, state) => StartScreen()),
           GoRoute(path: '/login', builder: (context, state) => LoginScreen()),
