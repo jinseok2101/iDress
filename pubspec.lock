@@ -346,10 +346,10 @@ packages:
     dependency: transitive
     description:
       name: flutter_image_compress_common
-      sha256: "7f79bc6c8a363063620b4e372fa86bc691e1cb28e58048cd38e030692fbd99ee"
+      sha256: c5c5d50c15e97dd7dc72ff96bd7077b9f791932f2076c5c5b6c43f2c88607bfb
       url: "https://pub.dev"
     source: hosted
-    version: "1.0.5"
+    version: "1.0.6"
   flutter_image_compress_macos:
     dependency: transitive
     description:
@@ -1098,8 +1098,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.0"
-  dependencies:
-    archive: ^3.3.7
 sdks:
   dart: ">=3.6.0 <4.0.0"
   flutter: ">=3.27.0"
