@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 
 class ClothingAnalyzer {
   static const String apiKey = 'AIzaSyD_oUTlk13g6B6oNopJ6ptX0O3-IKAjvgo';
-  static const String apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey';
+  static const String apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey';
 
   final List<String> colors = [
     '흰색', '검정', '빨강', '주황', '노랑',

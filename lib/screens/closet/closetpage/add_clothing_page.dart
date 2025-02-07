@@ -132,6 +132,7 @@ class _AddClothingPageState extends State<AddClothingPage> {
         final analyzedCategory = result['category'];
         final analyzedColor = result['color'];
         final analyzedSeasons = Set<String>.from(result['seasons'] ?? ['봄']);
+        final analyzedMemo = result['memo'] ?? ''; // 메모 내용 가져오기
 
         if (mounted) {
           showDialog(
@@ -174,6 +175,7 @@ class _AddClothingPageState extends State<AddClothingPage> {
                       selectedCategory = analyzedCategory;
                       selectedColor = analyzedColor;
                       selectedSeasons = analyzedSeasons;
+                      memoController.text = analyzedMemo; // 메모 컨트롤러에 분석된 상세 내용 설정
                     });
                     Navigator.pop(context);
                   },

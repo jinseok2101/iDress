@@ -97,9 +97,11 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception('사용자가 인증되지 않았습니다.');
 
+      // 수정된 저장 경로
       final storageRef = FirebaseStorage.instance
           .ref()
           .child('users')
+          .child(user.uid)  // userId 폴더
           .child('parent_profile_images')
           .child('profile_${DateTime.now().millisecondsSinceEpoch}.jpg');
 

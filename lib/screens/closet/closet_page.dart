@@ -248,7 +248,7 @@ class _ClosetPageState extends State<ClosetPage> {
                       child: Column(
                         children: [
                           WeatherWidget(),
-                          SizedBox(height: 8),
+                          SizedBox(height: 4),
                           SchoolScheduleWidget(),
                         ],
                       ),
@@ -257,7 +257,7 @@ class _ClosetPageState extends State<ClosetPage> {
                 ),
               ),
             ],
-            SizedBox(height: 40),
+            SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: Column(
