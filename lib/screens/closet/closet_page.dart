@@ -263,37 +263,6 @@ class _ClosetPageState extends State<ClosetPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 검색 버튼을 위로 이동
-                  if (!widget.selectionMode)
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton.icon(
-                        onPressed: () {
-                          setState(() {
-                            isSearchVisible = !isSearchVisible;
-                            if (!isSearchVisible) {
-                              _searchController.clear();
-                            }
-                          });
-                        },
-                        icon: Icon(
-                          Icons.search,
-                          size: 20,
-                          color: Colors.grey[600],
-                        ),
-                        label: Text(
-                          '검색',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        ),
-                      ),
-                    ),
-                  SizedBox(height: 8),
                   // 필터 옵션들
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
@@ -407,6 +376,66 @@ class _ClosetPageState extends State<ClosetPage> {
                       ],
                     ),
                   ),
+                  SizedBox(height: 16),
+                  // 삭제와 검색 버튼을 카테고리 버튼들 아래로 이동
+                  if (!widget.selectionMode)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // 삭제 버튼 (왼쪽)
+                        TextButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              isDeleteMode = !isDeleteMode;
+                              if (!isDeleteMode) {
+                                selectedItems.clear();
+                              }
+                            });
+                          },
+                          icon: Icon(
+                            isDeleteMode ? Icons.close : Icons.delete_outline,
+                            size: 20,
+                            color: Colors.grey[600],
+                          ),
+                          label: Text(
+                            isDeleteMode ? '취소' : '삭제',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                        ),
+                        // 검색 버튼 (오른쪽)
+                        TextButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              isSearchVisible = !isSearchVisible;
+                              if (!isSearchVisible) {
+                                _searchController.clear();
+                              }
+                            });
+                          },
+                          icon: Icon(
+                            Icons.search,
+                            size: 20,
+                            color: Colors.grey[600],
+                          ),
+                          label: Text(
+                            '검색',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                        ),
+                      ],
+                    ),
                   if (isSearchVisible) ...[
                     SizedBox(height: 16),
                     Container(
@@ -444,40 +473,6 @@ class _ClosetPageState extends State<ClosetPage> {
                       ),
                     ),
                   ],
-                  if (!widget.selectionMode)
-                    SizedBox(height: 16),
-
-                  if (!widget.selectionMode)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        TextButton.icon(
-                          onPressed: () {
-                            setState(() {
-                              isDeleteMode = !isDeleteMode;
-                              if (!isDeleteMode) {
-                                selectedItems.clear();
-                              }
-                            });
-                          },
-                          icon: Icon(
-                            isDeleteMode ? Icons.close : Icons.delete_outline,
-                            size: 20,
-                            color: Colors.grey[600],
-                          ),
-                          label: Text(
-                            isDeleteMode ? '취소' : '삭제',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          style: TextButton.styleFrom(
-                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          ),
-                        ),
-                      ],
-                    ),
                 ],
               ),
             ),
