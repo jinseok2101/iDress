@@ -354,16 +354,7 @@ class _FittingResultPageState extends State<FittingResultPage> {
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios, color: Colors.black),
-          onPressed: () => Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => FittingRoomPage(
-                childInfo: widget.childInfo,
-                fullBodyImageUrl: widget.childInfo['fullBodyImageUrl'],
-                clearPreviousImages: true,  // 추가
-              ),
-            ),
-          ),
+          onPressed: () => Navigator.pop(context),
         ),
         title: Row(
           mainAxisSize: MainAxisSize.min,
