@@ -132,6 +132,7 @@ class _AddClothingPageState extends State<AddClothingPage> {
         final analyzedCategory = result['category'];
         final analyzedColor = result['color'];
         final analyzedSeasons = Set<String>.from(result['seasons'] ?? ['봄']);
+        final analyzedMemo = result['memo'] ?? ''; // 메모 내용 가져오기
 
         if (mounted) {
           showDialog(
@@ -174,6 +175,7 @@ class _AddClothingPageState extends State<AddClothingPage> {
                       selectedCategory = analyzedCategory;
                       selectedColor = analyzedColor;
                       selectedSeasons = analyzedSeasons;
+                      memoController.text = analyzedMemo; // 메모 컨트롤러에 분석된 상세 내용 설정
                     });
                     Navigator.pop(context);
                   },
@@ -201,7 +203,7 @@ class _AddClothingPageState extends State<AddClothingPage> {
 
   Future<File?> _processImageSegmentation(File imageFile) async {
     try {
-      var uri = Uri.parse('http://34.47.104.167/upload');
+      var uri = Uri.parse('http://34.64.85.51/upload');
       var request = http.MultipartRequest('POST', uri);
 
       // Add file to the request
@@ -263,7 +265,7 @@ class _AddClothingPageState extends State<AddClothingPage> {
           try {
             // 서버 연결 상태 확인 (3초 타임아웃)
             final response = await http
-                .get(Uri.parse('http://34.47.104.167/upload'))
+                .get(Uri.parse('http://34.64.85.51/upload'))
                 .timeout(Duration(seconds: 3));
 
             if (response.statusCode != 404) {  // 서버가 응답하면

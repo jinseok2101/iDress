@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
+import '../fitting_room_page.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -15,7 +16,7 @@ class FittingResultPage extends StatefulWidget {
   final bool isOnepiece;
   final bool isFromCloset;
   final File? processedImage;
-  final List<File>? similarImages; // 추가
+  final List<String> recommendedItems;
 
   const FittingResultPage({
     Key? key,
@@ -24,8 +25,8 @@ class FittingResultPage extends StatefulWidget {
     required this.bottomImage,
     this.isOnepiece = false,
     this.isFromCloset = false,
-    this.processedImage,
-    this.similarImages,
+    required this.processedImage,
+    required this.recommendedItems,
   }) : super(key: key);
 
   @override
@@ -353,7 +354,16 @@ class _FittingResultPageState extends State<FittingResultPage> {
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => FittingRoomPage(
+                childInfo: widget.childInfo,
+                fullBodyImageUrl: widget.childInfo['fullBodyImageUrl'],
+                clearPreviousImages: true,  // 추가
+              ),
+            ),
+          ),
         ),
         title: Row(
           mainAxisSize: MainAxisSize.min,
@@ -379,45 +389,45 @@ class _FittingResultPageState extends State<FittingResultPage> {
                 children: [
                   _buildMainImage(),  // 수정된 부분: 메인 이미지 표시
 
-                  // // 하단의 작은 이미지들 (원본 이미지들)
-                  // Container(
-                  //   margin: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-                  //   child: Row(
-                  //     mainAxisAlignment: MainAxisAlignment.center,
-                  //     children: [
-                  //       if (widget.topImage != null)
-                  //         Container(
-                  //           width: 60,
-                  //           height: 60,
-                  //           decoration: BoxDecoration(
-                  //             border: Border.all(color: Colors.grey[300]!),
-                  //             borderRadius: BorderRadius.circular(8),
-                  //           ),
-                  //           child: ClipRRect(
-                  //             borderRadius: BorderRadius.circular(8),
-                  //             child: _buildImage(widget.topImage),
-                  //           ),
-                  //         ),
-                  //       if (!widget.isOnepiece && widget.bottomImage != null) ...[
-                  //         SizedBox(width: 8),
-                  //         Icon(Icons.add, color: Colors.grey, size: 20),
-                  //         SizedBox(width: 8),
-                  //         Container(
-                  //           width: 60,
-                  //           height: 60,
-                  //           decoration: BoxDecoration(
-                  //             border: Border.all(color: Colors.grey[300]!),
-                  //             borderRadius: BorderRadius.circular(8),
-                  //           ),
-                  //           child: ClipRRect(
-                  //             borderRadius: BorderRadius.circular(8),
-                  //             child: _buildImage(widget.bottomImage),
-                  //           ),
-                  //         ),
-                  //       ],
-                  //     ],
-                  //   ),
-                  // ),
+                  // 하단의 작은 이미지들 (원본 이미지들)
+                  Container(
+                    margin: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (widget.topImage != null)
+                          Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey[300]!),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: _buildImage(widget.topImage),
+                            ),
+                          ),
+                        if (!widget.isOnepiece && widget.bottomImage != null) ...[
+                          SizedBox(width: 8),
+                          Icon(Icons.add, color: Colors.grey, size: 20),
+                          SizedBox(width: 8),
+                          Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey[300]!),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: _buildImage(widget.bottomImage),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
 
                   // 유사 스타일 추천 섹션
                   Container(
@@ -433,47 +443,54 @@ class _FittingResultPageState extends State<FittingResultPage> {
                           ),
                         ),
                         SizedBox(height: 12),
-                        // similarImages가 null이 아니고 비어있지 않으면 추천 이미지를 표시
-                        widget.similarImages != null && widget.similarImages!.isNotEmpty
-                            ? SizedBox(
-                          height: 200,
-                          child: ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: widget.similarImages!.length,
-                            itemBuilder: (context, index) {
-                              final imageFile = widget.similarImages![index];
-                              return Container(
-                                width: 120,
-                                margin: EdgeInsets.only(right: 12),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: Colors.grey[300]!),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                        if (widget.recommendedItems.isNotEmpty)
+                          ...List.generate((widget.recommendedItems.length / 3).ceil(), (index) {
+                            int start = index * 3;
+                            int end = (start + 3 <= widget.recommendedItems.length)
+                                ? start + 3
+                                : widget.recommendedItems.length;
+
+                            return Column(
+                              children: [
+                                Row(
                                   children: [
-                                    Expanded(
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.vertical(
-                                          top: Radius.circular(8),
-                                        ),
-                                        child: Image.file(
-                                          imageFile,
-                                          fit: BoxFit.cover,
-                                          width: double.infinity,
+                                    for (int i = start; i < end; i++)
+                                      Expanded(
+                                        child: Container(
+                                          margin: EdgeInsets.symmetric(horizontal: 6),
+                                          height: 150,
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(8),
+                                            border: Border.all(color: Colors.grey[300]!),
+                                          ),
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(8),
+                                            child: Image.network(
+                                              widget.recommendedItems[i],
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (context, error, stackTrace) {
+                                                return Container(
+                                                  color: Colors.grey[200],
+                                                  child: Icon(Icons.error_outline, color: Colors.grey),
+                                                );
+                                              },
+                                            ),
+                                          ),
                                         ),
                                       ),
-                                    ),
+                                    // 3개 미만일 경우 빈 공간을 채우기 위한 Expanded
+                                    for (int i = 0; i < (3 - (end - start)); i++)
+                                      Expanded(child: Container()),
                                   ],
                                 ),
-                              );
-                            },
-                          ),
-                        )
-                            : Center(child: Text('추천 이미지가 없습니다')),
+                                if (index < (widget.recommendedItems.length / 3).ceil() - 1)
+                                  SizedBox(height: 12),  // 행 간격
+                              ],
+                            );
+                          }),
                       ],
                     ),
-                  ),
+                  )
                 ],
               ),
             ),
@@ -492,11 +509,17 @@ class _FittingResultPageState extends State<FittingResultPage> {
               children: [
                 Expanded(
                   child: TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: Text(
-                      '다시 피팅하기',
-                      style: TextStyle(color: Colors.grey[600]),
+                    onPressed: () => Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => FittingRoomPage(
+                          childInfo: widget.childInfo,
+                          fullBodyImageUrl: widget.childInfo['fullBodyImageUrl'],
+                          clearPreviousImages: true,  // 추가
+                        ),
+                      ),
                     ),
+                    child: Text('다시 피팅하기', style: TextStyle(color: Colors.grey[600])),
                   ),
                 ),
                 SizedBox(width: 16),
