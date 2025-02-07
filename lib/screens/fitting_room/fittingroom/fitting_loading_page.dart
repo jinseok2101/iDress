@@ -10,7 +10,7 @@ class FittingLoadingPage extends StatefulWidget {
   final Map<String, dynamic> childInfo;
   final dynamic topImage;
   final dynamic bottomImage;
-  final String? topImageUrl;    // 추가
+  final String? topImageUrl;
   final String? bottomImageUrl;
   final bool isOnepiece;
   final bool isFromCloset;
@@ -21,7 +21,7 @@ class FittingLoadingPage extends StatefulWidget {
     required this.childInfo,
     this.topImage,
     this.bottomImage,
-    this.topImageUrl,    // 추가
+    this.topImageUrl,
     this.bottomImageUrl,
     required this.isOnepiece,
     required this.isFromCloset,
@@ -33,7 +33,6 @@ class FittingLoadingPage extends StatefulWidget {
 }
 
 class _FittingLoadingPageState extends State<FittingLoadingPage> {
-
   Future<String> _downloadImage(String url) async {
     final response = await http.get(Uri.parse(url));
     final tempDir = await getTemporaryDirectory();
@@ -60,47 +59,46 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
       }
     }
 
-
-    final url = 'http://34.64.85.51/try-on';
-    var request = http.MultipartRequest('POST', Uri.parse(url));
-
     try {
-      print('요청 시작: $url');
       final humanImagePath = await _downloadImage(widget.childInfo['fullBodyImageUrl']);
-      request.files.add(await http.MultipartFile.fromPath('human_image', humanImagePath));
-
       File? tempFile;
 
       if (widget.clothType == '상의+하의') {
-        final fullOutfitUrl = 'http://34.64.85.51/try-on-full-outfit';
-        var fullRequest = http.MultipartRequest('POST', Uri.parse(fullOutfitUrl));
+        final url = 'http://34.47.84.144/try-on-full-outfit';
+        var request = http.MultipartRequest('POST', Uri.parse(url));
 
-        fullRequest.files.add(await http.MultipartFile.fromPath('human_image', humanImagePath));
+        request.files.add(await http.MultipartFile.fromPath('human_image', humanImagePath));
 
         // 상의 이미지 처리
         if (widget.topImage != null) {
-          fullRequest.files.add(await http.MultipartFile.fromPath('top_image', widget.topImage.path));
+          request.files.add(await http.MultipartFile.fromPath('top_image', widget.topImage.path));
         } else if (widget.topImageUrl != null) {
           final topImagePath = await _downloadImage(widget.topImageUrl!);
-          fullRequest.files.add(await http.MultipartFile.fromPath('top_image', topImagePath));
+          request.files.add(await http.MultipartFile.fromPath('top_image', topImagePath));
         }
 
         // 하의 이미지 처리
         if (widget.bottomImage != null) {
-          fullRequest.files.add(await http.MultipartFile.fromPath('bottom_image', widget.bottomImage.path));
+          request.files.add(await http.MultipartFile.fromPath('bottom_image', widget.bottomImage.path));
         } else if (widget.bottomImageUrl != null) {
           final bottomImagePath = await _downloadImage(widget.bottomImageUrl!);
-          fullRequest.files.add(await http.MultipartFile.fromPath('bottom_image', bottomImagePath));
+          request.files.add(await http.MultipartFile.fromPath('bottom_image', bottomImagePath));
         }
 
-        final response = await fullRequest.send();
-        print('응답 코드: ${response.statusCode}');
+        final response = await request.send();
+        if (response.statusCode != 200) {
+          throw Exception('서버 에러: ${response.statusCode}');
+        }
 
         final tempDir = await getTemporaryDirectory();
         tempFile = File('${tempDir.path}/result.png');
         await response.stream.pipe(tempFile.openWrite());
-
       } else {
+        final url = 'http://34.47.84.144/try-on';
+        var request = http.MultipartRequest('POST', Uri.parse(url));
+
+        request.files.add(await http.MultipartFile.fromPath('human_image', humanImagePath));
+
         // 단일 의류 처리
         String? imagePath;
         if (widget.topImage != null) {
@@ -117,20 +115,15 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
           request.files.add(await http.MultipartFile.fromPath('garment_image', imagePath));
         }
 
-        // 서버에 전송할 의류 타입 결정
         String serverClothType = widget.clothType == '하의' ? 'lower_body' :
         widget.clothType == '올인원' ? 'jumpsuit' :
-        'upper_body';  // 상의와 아우터는 모두 upper_body로 처리
+        'upper_body';
 
         request.fields['cloth_type'] = serverClothType;
-        print('cloth_type: $serverClothType');
 
         final response = await request.send();
-        print('응답 코드: ${response.statusCode}');
-
         if (response.statusCode != 200) {
           final responseText = await response.stream.bytesToString();
-          print('에러 응답: $responseText');
           throw Exception('서버 에러: ${response.statusCode}');
         }
 
@@ -140,7 +133,6 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
       }
 
       return tempFile;
-
     } catch (e) {
       print('에러 발생: $e');
       rethrow;
@@ -148,39 +140,28 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
   }
 
   Future<List<String>> _recommand() async {
-    if (widget.clothType == '상의+하의') {
-      final url = 'http://34.64.85.51/search-similar-full';
-      var request = http.MultipartRequest('POST', Uri.parse(url));
-
-      try {
-        print('상하의 추천 요청 시작: $url');
+    try {
+      if (widget.clothType == '상의+하의') {
+        final url = 'http://34.47.84.144/search-similar-full';
+        var request = http.MultipartRequest('POST', Uri.parse(url));
 
         // 상의 이미지 처리
-        String? topImagePath;
         if (widget.topImage != null) {
-          topImagePath = widget.topImage.path;
+          request.files.add(await http.MultipartFile.fromPath('top_image', widget.topImage.path));
         } else if (widget.topImageUrl != null) {
-          topImagePath = await _downloadImage(widget.topImageUrl!);
+          final topImagePath = await _downloadImage(widget.topImageUrl!);
+          request.files.add(await http.MultipartFile.fromPath('top_image', topImagePath));
         }
 
         // 하의 이미지 처리
-        String? bottomImagePath;
         if (widget.bottomImage != null) {
-          bottomImagePath = widget.bottomImage.path;
+          request.files.add(await http.MultipartFile.fromPath('bottom_image', widget.bottomImage.path));
         } else if (widget.bottomImageUrl != null) {
-          bottomImagePath = await _downloadImage(widget.bottomImageUrl!);
-        }
-
-        if (topImagePath != null) {
-          request.files.add(await http.MultipartFile.fromPath('top_image', topImagePath));
-        }
-        if (bottomImagePath != null) {
+          final bottomImagePath = await _downloadImage(widget.bottomImageUrl!);
           request.files.add(await http.MultipartFile.fromPath('bottom_image', bottomImagePath));
         }
 
         final response = await request.send();
-        print('응답 코드: ${response.statusCode}');
-
         if (response.statusCode != 200) {
           throw Exception('서버 에러: ${response.statusCode}');
         }
@@ -188,18 +169,9 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
         final responseBody = await response.stream.bytesToString();
         final Map<String, dynamic> jsonResponse = json.decode(responseBody);
         return List<String>.from(jsonResponse['similar_items']);
-
-      } catch (e) {
-        print('추천 시스템 에러 발생: $e');
-        rethrow;
-      }
-    } else {
-      // 기존의 단일 의류 추천 로직 (반환 형식 맞추기)
-      final url = 'http://34.64.85.51/search-similar';
-      var request = http.MultipartRequest('POST', Uri.parse(url));
-
-      try {
-        print('단일 의류 추천 요청 시작: $url');
+      } else {
+        final url = 'http://34.47.84.144/search-similar';
+        var request = http.MultipartRequest('POST', Uri.parse(url));
 
         String? imagePath;
         if (widget.topImage != null) {
@@ -223,8 +195,6 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
         request.fields['cloth_type'] = serverClothType;
 
         final response = await request.send();
-        print('응답 코드: ${response.statusCode}');
-
         if (response.statusCode != 200) {
           throw Exception('서버 에러: ${response.statusCode}');
         }
@@ -232,38 +202,36 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
         final responseBody = await response.stream.bytesToString();
         final Map<String, dynamic> jsonResponse = json.decode(responseBody);
         return List<String>.from(jsonResponse['similar_items']);
-
-      } catch (e) {
-        print('추천 시스템 에러 발생: $e');
-        rethrow;
       }
+    } catch (e) {
+      print('추천 시스템 에러 발생: $e');
+      rethrow;
     }
   }
 
   @override
   void initState() {
     super.initState();
-    // Future.wait를 사용하여 두 작업을 동시에 실행
-    Future.wait([
-      _tryOn(),
-      _recommand()
-    ]).then((results) {
-      // results[0]은 _tryOn의 결과 (File)
-      // results[1]은 _recommand의 결과 (List<String>)
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => FittingResultPage(
-            childInfo: widget.childInfo,
-            topImage: widget.topImage,
-            bottomImage: widget.bottomImage,
-            processedImage: results[0] as File,  // _tryOn 결과
-            recommendedItems: results[1] as List<String>, // _recommand 결과
-            isOnepiece: widget.isOnepiece,
-            isFromCloset: widget.isFromCloset,
-          ),
-        ),
-      );
+
+    _tryOn().then((processedImage) {
+      return _recommand().then((recommendedItems) {
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => FittingResultPage(
+                childInfo: widget.childInfo,
+                topImage: widget.topImage,
+                bottomImage: widget.bottomImage,
+                processedImage: processedImage,
+                recommendedItems: recommendedItems,
+                isOnepiece: widget.isOnepiece,
+                isFromCloset: widget.isFromCloset,
+              ),
+            ),
+          );
+        }
+      });
     }).catchError((error) {
       print('Error in processing: $error');
       if (mounted) {
