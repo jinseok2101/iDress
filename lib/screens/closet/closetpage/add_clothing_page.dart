@@ -201,7 +201,7 @@ class _AddClothingPageState extends State<AddClothingPage> {
 
   Future<File?> _processImageSegmentation(File imageFile) async {
     try {
-      var uri = Uri.parse('http://34.47.104.167/upload');
+      var uri = Uri.parse('http://34.64.85.51/upload');
       var request = http.MultipartRequest('POST', uri);
 
       // Add file to the request
@@ -263,7 +263,7 @@ class _AddClothingPageState extends State<AddClothingPage> {
           try {
             // 서버 연결 상태 확인 (3초 타임아웃)
             final response = await http
-                .get(Uri.parse('http://34.47.104.167/upload'))
+                .get(Uri.parse('http://34.64.85.51/upload'))
                 .timeout(Duration(seconds: 3));
 
             if (response.statusCode != 404) {  // 서버가 응답하면

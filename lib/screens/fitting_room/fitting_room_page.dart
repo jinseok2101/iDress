@@ -11,11 +11,13 @@ import 'package:last3/screens/closet/closet_page.dart';
 class FittingRoomPage extends StatefulWidget {
   final Map<String, dynamic> childInfo;
   final String? fullBodyImageUrl;
+  final bool clearPreviousImages;  // 추가된 파라미터
 
   const FittingRoomPage({
     Key? key,
     required this.childInfo,
     this.fullBodyImageUrl,
+    this.clearPreviousImages = false,  // 기본값 false
   }) : super(key: key);
 
   @override
@@ -32,7 +34,29 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
   final String _userId = FirebaseAuth.instance.currentUser?.uid ?? '';
   bool _isUploading = false;
   String? selectedClothingUrl;
-  String selectedOption = '상의'; // 콤보박스 기본값
+  String selectedOption = '상의';
+
+  bool _clearPreviousImages = false;  // 상태 변수 추가
+
+  @override
+  void initState() {
+    super.initState();
+
+    _clearPreviousImages = widget.clearPreviousImages;  // 위젯의 값을 상태 변수로 복사
+
+    // clearPreviousImages가 true일 경우 모든 이미지 상태를 초기화
+    if (_clearPreviousImages) {
+      setState(() {
+        topImageUrl = null;
+        bottomImageUrl = null;
+        topImage = null;
+        bottomImage = null;
+        selectedClothingUrl = null;
+        selectedOption = '상의';  // 옵션도 기본값으로 초기화
+        _clearPreviousImages = false;  // 초기화 후 false로 변경
+      });
+    }
+  }
 
   Future<(ImageSource?, bool)?> _showImageSourceDialog(BuildContext context) async {
     return showDialog<(ImageSource?, bool)>(

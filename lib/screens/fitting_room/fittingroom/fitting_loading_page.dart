@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:io';
+import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:archive/archive.dart'; // ZIP 파일 해제용 패키지
 import 'package:path_provider/path_provider.dart';
 import 'fitting_result_page.dart';
 
@@ -42,7 +42,7 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
     return tempFile.path;
   }
 
-  Future<List<File>> _tryOn() async {
+  Future<File> _tryOn() async {
     if (widget.childInfo['fullBodyImageUrl'] == null) {
       throw Exception('아이의 전신 이미지가 없습니다.');
     }
@@ -60,7 +60,8 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
       }
     }
 
-    final url = 'http://34.47.87.56/try-on';
+
+    final url = 'http://34.64.85.51/try-on';
     var request = http.MultipartRequest('POST', Uri.parse(url));
 
     try {
@@ -68,11 +69,10 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
       final humanImagePath = await _downloadImage(widget.childInfo['fullBodyImageUrl']);
       request.files.add(await http.MultipartFile.fromPath('human_image', humanImagePath));
 
-      List<File> resultFiles = [];
-      final tempDir = await getTemporaryDirectory();
+      File? tempFile;
 
       if (widget.clothType == '상의+하의') {
-        final fullOutfitUrl = 'http://34.47.87.56/try-on-full-outfit';
+        final fullOutfitUrl = 'http://34.64.85.51/try-on-full-outfit';
         var fullRequest = http.MultipartRequest('POST', Uri.parse(fullOutfitUrl));
 
         fullRequest.files.add(await http.MultipartFile.fromPath('human_image', humanImagePath));
@@ -96,21 +96,111 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
         final response = await fullRequest.send();
         print('응답 코드: ${response.statusCode}');
 
-        // ZIP 파일 처리
-        final bytes = await response.stream.toBytes();
-        final archive = ZipDecoder().decodeBytes(bytes);
+        final tempDir = await getTemporaryDirectory();
+        tempFile = File('${tempDir.path}/result.png');
+        await response.stream.pipe(tempFile.openWrite());
 
-        for (final file in archive) {
-          if (file.isFile) {
-            final filename = file.name;
-            final data = file.content as List<int>;
-            final outFile = File('${tempDir.path}/$filename');
-            await outFile.writeAsBytes(data);
-            resultFiles.add(outFile);
-          }
-        }
       } else {
         // 단일 의류 처리
+        String? imagePath;
+        if (widget.topImage != null) {
+          imagePath = widget.topImage.path;
+        } else if (widget.bottomImage != null) {
+          imagePath = widget.bottomImage.path;
+        } else if (widget.topImageUrl != null) {
+          imagePath = await _downloadImage(widget.topImageUrl!);
+        } else if (widget.bottomImageUrl != null) {
+          imagePath = await _downloadImage(widget.bottomImageUrl!);
+        }
+
+        if (imagePath != null) {
+          request.files.add(await http.MultipartFile.fromPath('garment_image', imagePath));
+        }
+
+        // 서버에 전송할 의류 타입 결정
+        String serverClothType = widget.clothType == '하의' ? 'lower_body' :
+        widget.clothType == '올인원' ? 'jumpsuit' :
+        'upper_body';  // 상의와 아우터는 모두 upper_body로 처리
+
+        request.fields['cloth_type'] = serverClothType;
+        print('cloth_type: $serverClothType');
+
+        final response = await request.send();
+        print('응답 코드: ${response.statusCode}');
+
+        if (response.statusCode != 200) {
+          final responseText = await response.stream.bytesToString();
+          print('에러 응답: $responseText');
+          throw Exception('서버 에러: ${response.statusCode}');
+        }
+
+        final tempDir = await getTemporaryDirectory();
+        tempFile = File('${tempDir.path}/result.png');
+        await response.stream.pipe(tempFile.openWrite());
+      }
+
+      return tempFile;
+
+    } catch (e) {
+      print('에러 발생: $e');
+      rethrow;
+    }
+  }
+
+  Future<List<String>> _recommand() async {
+    if (widget.clothType == '상의+하의') {
+      final url = 'http://34.64.85.51/search-similar-full';
+      var request = http.MultipartRequest('POST', Uri.parse(url));
+
+      try {
+        print('상하의 추천 요청 시작: $url');
+
+        // 상의 이미지 처리
+        String? topImagePath;
+        if (widget.topImage != null) {
+          topImagePath = widget.topImage.path;
+        } else if (widget.topImageUrl != null) {
+          topImagePath = await _downloadImage(widget.topImageUrl!);
+        }
+
+        // 하의 이미지 처리
+        String? bottomImagePath;
+        if (widget.bottomImage != null) {
+          bottomImagePath = widget.bottomImage.path;
+        } else if (widget.bottomImageUrl != null) {
+          bottomImagePath = await _downloadImage(widget.bottomImageUrl!);
+        }
+
+        if (topImagePath != null) {
+          request.files.add(await http.MultipartFile.fromPath('top_image', topImagePath));
+        }
+        if (bottomImagePath != null) {
+          request.files.add(await http.MultipartFile.fromPath('bottom_image', bottomImagePath));
+        }
+
+        final response = await request.send();
+        print('응답 코드: ${response.statusCode}');
+
+        if (response.statusCode != 200) {
+          throw Exception('서버 에러: ${response.statusCode}');
+        }
+
+        final responseBody = await response.stream.bytesToString();
+        final Map<String, dynamic> jsonResponse = json.decode(responseBody);
+        return List<String>.from(jsonResponse['similar_items']);
+
+      } catch (e) {
+        print('추천 시스템 에러 발생: $e');
+        rethrow;
+      }
+    } else {
+      // 기존의 단일 의류 추천 로직 (반환 형식 맞추기)
+      final url = 'http://34.64.85.51/search-similar';
+      var request = http.MultipartRequest('POST', Uri.parse(url));
+
+      try {
+        print('단일 의류 추천 요청 시작: $url');
+
         String? imagePath;
         if (widget.topImage != null) {
           imagePath = widget.topImage.path;
@@ -131,43 +221,35 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
         'upper_body';
 
         request.fields['cloth_type'] = serverClothType;
-        print('cloth_type: $serverClothType');
 
         final response = await request.send();
         print('응답 코드: ${response.statusCode}');
 
         if (response.statusCode != 200) {
-          final responseText = await response.stream.bytesToString();
-          print('에러 응답: $responseText');
           throw Exception('서버 에러: ${response.statusCode}');
         }
 
-        // ZIP 파일 처리
-        final bytes = await response.stream.toBytes();
-        final archive = ZipDecoder().decodeBytes(bytes);
+        final responseBody = await response.stream.bytesToString();
+        final Map<String, dynamic> jsonResponse = json.decode(responseBody);
+        return List<String>.from(jsonResponse['similar_items']);
 
-        for (final file in archive) {
-          if (file.isFile) {
-            final filename = file.name;
-            final data = file.content as List<int>;
-            final outFile = File('${tempDir.path}/$filename');
-            await outFile.writeAsBytes(data);
-            resultFiles.add(outFile);
-          }
-        }
+      } catch (e) {
+        print('추천 시스템 에러 발생: $e');
+        rethrow;
       }
-
-      return resultFiles;
-    } catch (e) {
-      print('에러 발생: $e');
-      rethrow;
     }
   }
 
   @override
   void initState() {
     super.initState();
-    _tryOn().then((resultFiles) {
+    // Future.wait를 사용하여 두 작업을 동시에 실행
+    Future.wait([
+      _tryOn(),
+      _recommand()
+    ]).then((results) {
+      // results[0]은 _tryOn의 결과 (File)
+      // results[1]은 _recommand의 결과 (List<String>)
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -175,18 +257,18 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
             childInfo: widget.childInfo,
             topImage: widget.topImage,
             bottomImage: widget.bottomImage,
-            processedImage: resultFiles[0], // tryon_result.png
-            similarImages: resultFiles.sublist(1), // similar_1.png, similar_2.png, similar_3.png
+            processedImage: results[0] as File,  // _tryOn 결과
+            recommendedItems: results[1] as List<String>, // _recommand 결과
             isOnepiece: widget.isOnepiece,
             isFromCloset: widget.isFromCloset,
           ),
         ),
       );
     }).catchError((error) {
-      print('Error in _tryOn: $error');
+      print('Error in processing: $error');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('피팅 중 오류가 발생했습니다: $error')),
+          SnackBar(content: Text('처리 중 오류가 발생했습니다: $error')),
         );
         Navigator.pop(context);
       }
