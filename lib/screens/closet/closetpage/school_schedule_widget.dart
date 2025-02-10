@@ -70,7 +70,7 @@ class SchoolSchedulePageState extends State<SchoolSchedulePage> {
   bool _isLoading = false;
   DateTime _selectedDay = DateTime.now();
   DateTime _focusedDay = DateTime.now();
-  final String _apiKey = 'b07059949b5b443eb285752559382a3d';
+  final String _apiKey = '25abc80106ee41aaa062fe35775d7674';
   List<String> selectedEvents = [];
 
   @override
@@ -105,54 +105,72 @@ class SchoolSchedulePageState extends State<SchoolSchedulePage> {
     });
 
     try {
+      // 현재 년월 계산
+      final now = DateTime.now();
+      final year = now.year;
+      final month = now.month.toString().padLeft(2, '0');
+
+      // API URL 구성
       final String url =
-          'https://open.neis.go.kr/hub/SchoolSchedule?KEY=$_apiKey&Type=json&ATPT_OFCDC_SC_CODE=$regionCode&SD_SCHUL_CODE=$schoolCode';
-      print('API 요청 URL: $url');
+          'https://open.neis.go.kr/hub/SchoolSchedule'
+          '?KEY=$_apiKey'
+          '&Type=json'
+          '&pIndex=1'
+          '&pSize=100'
+          '&ATPT_OFCDC_SC_CODE=$regionCode'
+          '&SD_SCHUL_CODE=$schoolCode'
+          '&AA_YMD=${year}${month}';
+
+      print('학사일정 API 요청: $url');
       final response = await http.get(Uri.parse(url));
-      print('API 요청 URL: $url');
+      print('학사일정 응답 코드: ${response.statusCode}');
+      print('학사일정 응답 데이터: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print('API 응답 데이터: ${json.encode(data)}');
 
         if (data.containsKey('SchoolSchedule')) {
-          final List<dynamic> schedules = data['SchoolSchedule'];
-          if (schedules.length > 1 && schedules[1].containsKey('row')) {
-            Map<DateTime, List<String>> eventMap = {};
+          final List<dynamic> schedules = data['SchoolSchedule'][1]['row'];
+          Map<DateTime, List<String>> eventMap = {};
 
-            for (var schedule in schedules[1]['row']) {
-              final String dateStr = schedule['AA_YMD'];
-              if (dateStr.length == 8) {
-                try {
-                  final year = int.parse(dateStr.substring(0, 4));
-                  final month = int.parse(dateStr.substring(4, 6));
-                  final day = int.parse(dateStr.substring(6, 8));
-                  final eventDate = DateTime.utc(year, month, day);  // ✅ UTC 변환
-                  String eventName = schedule['EVENT_NM'] ?? '일정 없음';
+          for (var schedule in schedules) {
+            final String dateStr = schedule['AA_YMD'];
+            final String eventName = schedule['EVENT_NM'];
 
+            try {
+              final year = int.parse(dateStr.substring(0, 4));
+              final month = int.parse(dateStr.substring(4, 6));
+              final day = int.parse(dateStr.substring(6, 8));
+              final eventDate = DateTime.utc(year, month, day);
 
+              print('일정 파싱: $dateStr - $eventName');
 
-                  if (!eventMap.containsKey(eventDate)) {
-                    eventMap[eventDate] = [];
-                  }
-                  eventMap[eventDate]!.add(eventName);
-                } catch (e) {
-                  print('날짜 파싱 오류: $e');
-                }
+              if (!eventMap.containsKey(eventDate)) {
+                eventMap[eventDate] = [];
               }
+              eventMap[eventDate]!.add(eventName);
+            } catch (e) {
+              print('날짜 파싱 오류: $e');
             }
-
-            setState(() {
-              _events = eventMap;
-            });
-            print('이벤트 맵: $_events');
           }
+
+          setState(() {
+            _events = eventMap;
+            print('저장된 일정: $_events');
+          });
+        } else if (data.containsKey('RESULT')) {
+          final errorMessage = data['RESULT']['MESSAGE'];
+          print('API 오류 메시지: $errorMessage');
+          _showErrorSnackBar('일정 조회 실패: $errorMessage');
+        } else {
+          print('일정 데이터 없음');
+          _showErrorSnackBar('해당 월에 등록된 일정이 없습니다.');
         }
       } else {
-        _showErrorSnackBar('서버에서 일정을 불러오는데 실패했습니다');
+        throw Exception('서버 응답 오류 (${response.statusCode})');
       }
     } catch (e) {
-      print('오류: $e');
+      print('일정 조회 오류: $e');
       _showErrorSnackBar('일정을 불러오는 중 오류가 발생했습니다');
     } finally {
       setState(() {
@@ -160,6 +178,8 @@ class SchoolSchedulePageState extends State<SchoolSchedulePage> {
       });
     }
   }
+
+
 
   List<String> _getEventsForDay(DateTime day) {
     final dateKey = DateTime.utc(day.year, day.month, day.day);  // ✅ UTC 변환
@@ -259,15 +279,29 @@ class SchoolSchedulePageState extends State<SchoolSchedulePage> {
       focusedDay: _focusedDay,
       selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
       eventLoader: (day) {
-        final dateKey = DateTime.utc(day.year, day.month, day.day);  // ✅ UTC 변환
-        return _events[dateKey] ?? [];
+        // UTC로 변환하여 비교
+        final utcDay = DateTime.utc(day.year, day.month, day.day);
+        return _events[utcDay] ?? [];
       },
       onDaySelected: (selectedDay, focusedDay) {
         setState(() {
           _selectedDay = selectedDay;
           _focusedDay = focusedDay;
-          selectedEvents = _getEventsForDay(selectedDay);
+          // UTC로 변환하여 이벤트 가져오기
+          final utcDay = DateTime.utc(selectedDay.year, selectedDay.month, selectedDay.day);
+          selectedEvents = _events[utcDay] ?? [];
         });
+      },
+      onPageChanged: (focusedDay) async {
+        // 월이 변경될 때 해당 월의 일정 가져오기
+        _focusedDay = focusedDay;
+        if (_savedSchoolCode != null) {
+          final prefs = await SharedPreferences.getInstance();
+          final regionCode = prefs.getString('region_code');
+          if (regionCode != null) {
+            await _fetchSchedule(regionCode, _savedSchoolCode!);
+          }
+        }
       },
       calendarStyle: CalendarStyle(
         markersMaxCount: 1,
@@ -358,9 +392,10 @@ class _SchoolCodeSearchDialogState extends State<SchoolCodeSearchDialog> {
   }
 
   Future<void> _searchSchool() async {
+    // 입력 값 검증
     if (_selectedRegionCode == null || _schoolNameController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('교육청과 학교명을 입력해주세요.')),
+        SnackBar(content: Text('교육청과 학교명을 모두 입력해주세요')),
       );
       return;
     }
@@ -371,41 +406,63 @@ class _SchoolCodeSearchDialogState extends State<SchoolCodeSearchDialog> {
     });
 
     try {
+      // URL 인코딩 추가
+      final schoolName = Uri.encodeComponent(_schoolNameController.text);
+
+      // API URL 구성
       final String url =
-          'https://open.neis.go.kr/hub/schoolInfo?KEY=b07059949b5b443eb285752559382a3d&Type=json&ATPT_OFCDC_SC_CODE=$_selectedRegionCode&SCHUL_NM=${_schoolNameController.text}';
+          'https://open.neis.go.kr/hub/schoolInfo'
+          '?KEY=b07059949b5b443eb285752559382a3d'
+          '&Type=json'
+          '&pIndex=1'
+          '&pSize=100'
+          '&ATPT_OFCDC_SC_CODE=$_selectedRegionCode'
+          '&SCHUL_NM=$schoolName';
+
+      print('요청 URL: $url'); // 디버깅용 로그
+
       final response = await http.get(Uri.parse(url));
 
-      print('학교 검색 API 요청: $url');
-      print('응답 코드: ${response.statusCode}');
+      print('응답 상태 코드: ${response.statusCode}');
       print('응답 데이터: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+
+        // 검색 결과가 있는 경우
         if (data.containsKey('schoolInfo')) {
+          final List<dynamic> schools = data['schoolInfo'][1]['row'];
           setState(() {
-            _searchResults = List<Map<String, String>>.from(
-              data['schoolInfo'][1]['row'].map((school) => {
-                'name': school['SCHUL_NM'],
-                'code': school['SD_SCHUL_CODE'],
-              }),
-            );
+            _searchResults = schools.map<Map<String, String>>((school) => {
+              'name': school['SCHUL_NM'] as String,
+              'code': school['SD_SCHUL_CODE'] as String,
+              'address': school['ORG_RDNMA'] as String, // 학교 주소 추가
+            }).toList();
           });
+
+          if (_searchResults.isEmpty) {
+            _showErrorSnackBar('검색 결과가 없습니다.');
+          }
+        } else if (data.containsKey('RESULT')) {
+          // API 에러 메시지 확인
+          final errorMessage = data['RESULT']['MESSAGE'] as String;
+          _showErrorSnackBar('검색 실패: $errorMessage');
         } else {
-          print('학교 데이터 없음');
           _showErrorSnackBar('검색된 학교가 없습니다.');
         }
       } else {
-        _showErrorSnackBar('학교 검색 실패: 서버 응답 오류');
+        _showErrorSnackBar('서버 응답 오류 (${response.statusCode})');
       }
     } catch (e) {
-      print('학교 검색 오류: $e');
-      _showErrorSnackBar('학교 검색 중 오류가 발생했습니다');
+      print('검색 오류: $e'); // 디버깅용 로그
+      _showErrorSnackBar('검색 중 오류가 발생했습니다');
     } finally {
       setState(() {
         _isLoading = false;
       });
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -445,6 +502,9 @@ class _SchoolCodeSearchDialogState extends State<SchoolCodeSearchDialog> {
               onSubmitted: (_) => _searchSchool(),
             ),
             SizedBox(height: 16),
+
+
+
             if (_isLoading)
               CircularProgressIndicator()
             else if (_searchResults.isNotEmpty)

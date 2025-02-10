@@ -13,11 +13,71 @@ class WeatherWidgetState extends State<WeatherWidget> {
   String _weatherDescription = '로딩 중';
   String _weatherIcon = '☀️';
   String _clothingRecommendation = '';
+  DateTime? _lastUpdate;
+  final _cacheTimeout = Duration(minutes: 30);
+
+
+  double _latitude = 36.7923; // 서울시청 위도
+  double _longitude = 127.0039; // 서울시청 경도
+  bool _useManualLocation = true; // 수동 위치 사용 여부
+
+  // 서울
+// _latitude = 37.5665;
+// _longitude = 126.9780;
 
   @override
   void initState() {
     super.initState();
     _fetchWeather();
+  }
+
+  String _getClothingRecommendation(double temp, String weatherMain) {
+    if (weatherMain == 'Rain' || weatherMain == 'Drizzle' || weatherMain == 'Thunderstorm') {
+      return '우산을 챙기세요! 🌂';
+    }
+    if (temp <= -5) {
+      return '패딩(코트), 목도리, 장갑 착용 필수!';
+    } else if (temp <= 0) {
+      return '두꺼운 코트, 목도리 추천';
+    } else if (temp <= 5) {
+      return '코트, 가죽자켓, 히트텍 추천';
+    } else if (temp <= 9) {
+      return '자켓, 트렌치코트, 니트 추천';
+    } else if (temp <= 12) {
+      return '자켓, 가디건, 청자켓 추천';
+    } else if (temp <= 17) {
+      return '얇은 니트, 맨투맨, 가디건 추천';
+    } else if (temp <= 20) {
+      return '긴팔, 얇은 가디건 추천';
+    } else if (temp <= 23) {
+      return '반팔, 얇은 셔츠 추천';
+    } else if (temp <= 27) {
+      return '반팔, 반바지 추천';
+    } else {
+      return '민소매, 반바지, 선크림 필수!';
+    }
+  }
+
+  String _getWeatherIcon(String weatherMain) {
+    switch (weatherMain) {
+      case 'Thunderstorm': return '⛈️';
+      case 'Drizzle': return '🌦️';
+      case 'Rain': return '🌧️';
+      case 'Snow': return '❄️';
+      case 'Clear': return '☀️';
+      case 'Clouds': return '☁️';
+      case 'Mist':
+      case 'Smoke':
+      case 'Haze':
+      case 'Dust':
+      case 'Fog':
+      case 'Sand':
+      case 'Ash':
+      case 'Squall':
+      case 'Tornado':
+        return '🌫️';
+      default: return '🌈';
+    }
   }
 
   String _getKoreanWeatherDescription(String weatherMain, String description) {
@@ -53,59 +113,82 @@ class WeatherWidgetState extends State<WeatherWidget> {
         '날씨 정보 없음';
   }
 
-  String _getClothingRecommendation(double temp, String weatherMain) {
-    if (weatherMain == 'Rain' || weatherMain == 'Drizzle') {
-      return '우산을 챙기세요!';
-    }
-    if (temp <= 0) {
-      return '온 세상이 얼었어요!';
-    } else if (temp <= 3) {
-      return '감기조심 하세요!';
-    } else if (temp <= 9) {
-      return '쌀쌀해요';
-    } else if (temp <= 16) {
-      return '가벼운 겉옷 입세요!';
-    } else if (temp <= 22) {
-      return '따듯해요'!;
-    } else if (temp <= 27) {
-      return '매우 더워요!';
-    } else {
-      return '시원하게 입으세요!';
-    }
-  }
+
+
 
   Future<void> _fetchWeather() async {
     try {
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
+      late Position position;
 
-      if (permission == LocationPermission.whileInUse ||
-          permission == LocationPermission.always) {
-        Position position = await Geolocator.getCurrentPosition(
-            desiredAccuracy: LocationAccuracy.high
+      if (_useManualLocation) {
+        // 수동으로 설정한 위치 사용
+        position = Position(
+          latitude: _latitude,
+          longitude: _longitude,
+          timestamp: DateTime.now(),
+          accuracy: 0,
+          altitude: 0,
+          heading: 0,
+          speed: 0,
+          speedAccuracy: 0,
+          altitudeAccuracy: 0,
+          headingAccuracy: 0,
         );
+      } else {
+        // 실제 위치 가져오기 시도
+        LocationPermission permission = await Geolocator.checkPermission();
+        if (permission == LocationPermission.denied) {
+          permission = await Geolocator.requestPermission();
+        }
 
-        final response = await http.get(Uri.parse(
-            'https://api.openweathermap.org/data/2.5/weather?lat=${position.latitude}&lon=${position.longitude}&appid=c2cb1b4c5a2722de1dc28439212da41c&units=metric'
-        ));
-
-        if (response.statusCode == 200) {
-          final weatherData = json.decode(response.body);
-          final temp = weatherData['main']['temp'].round();
-          final weatherMain = weatherData['weather'][0]['main'];
-          final weatherDesc = weatherData['weather'][0]['description'];
-
-          setState(() {
-            _temperature = '${temp}°C';
-            _weatherDescription = _getKoreanWeatherDescription(weatherMain, weatherDesc);
-            _weatherIcon = _getWeatherIcon(weatherMain);
-            _clothingRecommendation = _getClothingRecommendation(temp.toDouble(), weatherMain);
-          });
+        if (permission == LocationPermission.whileInUse ||
+            permission == LocationPermission.always) {
+          position = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.best,
+            timeLimit: Duration(seconds: 10),
+          );
         }
       }
+
+      print('사용 중인 위치: 위도=${position.latitude}, 경도=${position.longitude}');
+
+      final response = await http.get(Uri.parse(
+          'https://api.openweathermap.org/data/2.5/weather?lat=${position.latitude}&lon=${position.longitude}&appid=d5c14019c3cf59a500dd2164f0b250db&units=metric&lang=kr'
+      ));
+
+      if (response.statusCode == 200) {
+        final weatherData = json.decode(response.body);
+        print('날씨 데이터: $weatherData');
+
+        final temp = weatherData['main']['temp'].round();
+        final weatherMain = weatherData['weather'][0]['main'];
+        final weatherDesc = weatherData['weather'][0]['description'];
+        final cityName = weatherData['name'];
+        final humidity = weatherData['main']['humidity'];
+        final feelsLike = weatherData['main']['feels_like'].round();
+
+        if (temp < -50 || temp > 50) {
+          throw Exception('비정상적인 온도 값: $temp°C');
+        }
+
+        print('계산된 온도: $temp°C');
+        print('체감 온도: $feelsLike°C');
+        print('습도: $humidity%');
+        print('도시: $cityName');
+
+        setState(() {
+          _temperature = '${temp}°C';
+          _weatherDescription = '${_getKoreanWeatherDescription(weatherMain, weatherDesc)} / 체감 ${feelsLike}°C';
+          _weatherIcon = _getWeatherIcon(weatherMain);
+          _clothingRecommendation = _getClothingRecommendation(temp.toDouble(), weatherMain);
+          _lastUpdate = DateTime.now();
+        });
+      } else {
+        print('API 오류: ${response.statusCode}');
+        throw Exception('날씨 데이터를 가져오는데 실패했습니다.');
+      }
     } catch (e) {
+      print('에러 발생: $e');
       setState(() {
         _temperature = '-';
         _weatherDescription = '날씨 정보 불러오기 실패';
@@ -114,27 +197,7 @@ class WeatherWidgetState extends State<WeatherWidget> {
     }
   }
 
-  String _getWeatherIcon(String weatherMain) {
-    switch (weatherMain) {
-      case 'Thunderstorm': return '⛈️';
-      case 'Drizzle': return '🌦️';
-      case 'Rain': return '🌧️';
-      case 'Snow': return '❄️';
-      case 'Clear': return '☀️';
-      case 'Clouds': return '☁️';
-      case 'Mist':
-      case 'Smoke':
-      case 'Haze':
-      case 'Dust':
-      case 'Fog':
-      case 'Sand':
-      case 'Ash':
-      case 'Squall':
-      case 'Tornado':
-        return '🌫️';
-      default: return '🌈';
-    }
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -143,53 +206,67 @@ class WeatherWidgetState extends State<WeatherWidget> {
       decoration: BoxDecoration(
         color: Colors.blue[50],
         borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Text(
-            _weatherIcon,
-            style: TextStyle(fontSize: 24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.2),
+            spreadRadius: 1,
+            blurRadius: 3,
+            offset: Offset(0, 2),
           ),
-          SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Text(
+                _weatherIcon,
+                style: TextStyle(fontSize: 24),
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      _temperature,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(width: 4),
-                    Flexible(
-                      child: Text(
-                        _weatherDescription,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
+                    Row(
+                      children: [
+                        Text(
+                          _temperature,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                        overflow: TextOverflow.ellipsis,
+                        SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            _weatherDescription,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      _clothingRecommendation,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.blue[700],
                       ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
-                SizedBox(width: 4),
-                Text(
-                  _clothingRecommendation,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.blue[700],
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
+
         ],
       ),
     );

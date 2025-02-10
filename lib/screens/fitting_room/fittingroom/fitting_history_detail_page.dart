@@ -34,108 +34,228 @@ class FittingHistoryDetailPage extends StatelessWidget {
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 날짜 정보
-            Padding(
-              padding: EdgeInsets.all(16),
-              child: Text(
-                formattedDate,
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-
-            // 처리된 이미지 (AI 피팅 결과)
-            if (historyData['processedImageUrl'] != null)
-              Container(
-                width: double.infinity,
-                height: MediaQuery.of(context).size.height * 0.5,
-                child: InteractiveViewer(
-                  minScale: 0.5,
-                  maxScale: 3.0,
-                  child: Image.network(
-                    historyData['processedImageUrl'],
-                    fit: BoxFit.contain,
+      body: SafeArea(  // SafeArea 추가
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  formattedDate,
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-
-            // 원본 이미지들
-            Padding(
-              padding: EdgeInsets.all(16),
-              child: Text(
-                '원본 이미지',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-
-            // 원본 이미지 표시
-            if (category == 'set' && historyData['originalImageUrl'] != null)
-              Container(
-                width: double.infinity,
-                height: MediaQuery.of(context).size.height * 0.3,
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: InteractiveViewer(
-                  minScale: 0.5,
-                  maxScale: 3.0,
-                  child: Image.network(
-                    historyData['originalImageUrl'],
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              )
-            else if (category == 'top_bottom')
+              // 피팅 과정 표시
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (historyData['topImageUrl'] != null)
-                      Expanded(
-                        child: Container(
-                          height: MediaQuery.of(context).size.height * 0.2,
-                          child: InteractiveViewer(
-                            minScale: 0.5,
-                            maxScale: 3.0,
-                            child: Image.network(
-                              historyData['topImageUrl'],
-                              fit: BoxFit.contain,
-                            ),
+                    Text(
+                      '피팅 과정',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 16),
+                    Row(
+                      children: [
+                        // 원본 의류 이미지
+                        Expanded(
+                          child: Column(
+                            children: [
+                              Text(
+                                '선택한 의류',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              _buildOriginalImages(),
+                            ],
                           ),
                         ),
-                      ),
-                    if (historyData['bottomImageUrl'] != null) ...[
-                      SizedBox(width: 16),
-                      Expanded(
-                        child: Container(
-                          height: MediaQuery.of(context).size.height * 0.2,
-                          child: InteractiveViewer(
-                            minScale: 0.5,
-                            maxScale: 3.0,
-                            child: Image.network(
-                              historyData['bottomImageUrl'],
-                              fit: BoxFit.contain,
-                            ),
+                        // 화살표 아이콘
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16),
+                          child: Icon(Icons.arrow_forward, color: Colors.blue),
+                        ),
+                        // 피팅 결과 이미지
+                        Expanded(
+                          child: Column(
+                            children: [
+                              Text(
+                                '피팅 결과',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              _buildProcessedImage(),
+                            ],
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ],
                 ),
               ),
-          ],
+              // 확대보기 섹션
+              SizedBox(height: 32),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  '확대보기',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              SizedBox(height: 16),
+              _buildZoomableProcessedImage(),
+            ],
+          ),
         ),
       ),
     );
   }
+
+  Widget _buildOriginalImages() {
+    if (category == 'set' && historyData['originalImageUrl'] != null) {
+      return Container(
+        height: 150,
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey[300]!),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Image.network(
+            historyData['originalImageUrl'],
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                color: Colors.grey[200],
+                child: Icon(Icons.error_outline, color: Colors.grey),
+              );
+            },
+          ),
+        ),
+      );
+    } else if (category == 'top_bottom') {
+      return Column(
+        children: [
+          if (historyData['topImageUrl'] != null)
+            Container(
+              height: 150,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey[300]!),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  historyData['topImageUrl'],
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: Colors.grey[200],
+                      child: Icon(Icons.error_outline, color: Colors.grey),
+                    );
+                  },
+                ),
+              ),
+            ),
+          if (historyData['bottomImageUrl'] != null) ...[
+            SizedBox(height: 8),
+            Icon(Icons.add, color: Colors.grey),
+            SizedBox(height: 8),
+            Container(
+              height: 150,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey[300]!),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  historyData['bottomImageUrl'],
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: Colors.grey[200],
+                      child: Icon(Icons.error_outline, color: Colors.grey),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
+        ],
+      );
+    }
+    return Container();
+  }
+
+  Widget _buildProcessedImage() {
+    if (historyData['processedImageUrl'] != null) {
+      return Container(
+        height: 300,
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey[300]!),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Image.network(
+            historyData['processedImageUrl'],
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                color: Colors.grey[200],
+                child: Icon(Icons.error_outline, color: Colors.grey),
+              );
+            },
+          ),
+        ),
+      );
+    }
+    return Container();
+  }
+
+  Widget _buildZoomableProcessedImage() {
+    if (historyData['processedImageUrl'] != null) {
+      return Container(
+        width: double.infinity,
+        height: 400,
+        child: InteractiveViewer(
+          minScale: 0.5,
+          maxScale: 3.0,
+          child: Image.network(
+            historyData['processedImageUrl'],
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                color: Colors.grey[200],
+                child: Icon(Icons.error_outline, color: Colors.grey),
+              );
+            },
+          ),
+        ),
+      );
+    }
+    return Container();
+  }
+}
 
   Widget _buildInfoRow(String label, String value) {
     return Padding(
@@ -166,4 +286,3 @@ class FittingHistoryDetailPage extends StatelessWidget {
       ),
     );
   }
-}

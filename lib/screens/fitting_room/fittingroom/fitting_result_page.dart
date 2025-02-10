@@ -37,12 +37,10 @@ class _FittingResultPageState extends State<FittingResultPage> {
   @override
   void initState() {
     super.initState();
-    // 디버깅을 위한 로그 추가
     print('ResultPage - ProcessedImage: ${widget.processedImage?.path}');
     print('ResultPage - ProcessedImage exists: ${widget.processedImage?.existsSync()}');
-    _saveToHistory();
+    _saveToHistory();  // 피팅 즉시 history에 저장
   }
-
   Widget _buildMainImage() {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16),
@@ -261,6 +259,7 @@ class _FittingResultPageState extends State<FittingResultPage> {
       final _userId = FirebaseAuth.instance.currentUser?.uid ?? '';
       String fileName = 'fitting_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
+      // fittingResults에 저장 (저장한 피팅 기록용)
       final resultStorageRef = FirebaseStorage.instance
           .ref()
           .child('users')
@@ -270,11 +269,19 @@ class _FittingResultPageState extends State<FittingResultPage> {
           .child('fittingResults')
           .child('category');
 
-      // 처리된 이미지가 있는 경우 우선 저장
+      Map<String, dynamic> fittingData = {
+        'date': DateTime.now().toString(),
+        'timestamp': ServerValue.timestamp,
+        'savedAt': DateTime.now().toString(),
+      };
+
+      // 처리된 이미지가 있는 경우 저장
       if (widget.processedImage != null) {
         print('처리된 이미지 저장 시작');
         final processedRef = resultStorageRef.child('processed').child(fileName);
         await processedRef.putFile(widget.processedImage!);
+        final newUrl = await processedRef.getDownloadURL();
+        fittingData['processedImageUrl'] = newUrl;
         print('처리된 이미지 저장 완료');
       }
 
@@ -286,10 +293,27 @@ class _FittingResultPageState extends State<FittingResultPage> {
 
           final newRef = resultStorageRef.child('set').child(fileName);
           await newRef.putData(imageData);
+          final newUrl = await newRef.getDownloadURL();
+          fittingData['originalImageUrl'] = newUrl;
         } else {
           final newRef = resultStorageRef.child('set').child(fileName);
           await newRef.putFile(widget.topImage as File);
+          final newUrl = await newRef.getDownloadURL();
+          fittingData['originalImageUrl'] = newUrl;
         }
+
+        await FirebaseDatabase.instance
+            .ref()
+            .child('users')
+            .child(_userId)
+            .child('children')
+            .child(widget.childInfo['childId'])
+            .child('fittingResults')
+            .child('category')
+            .child('set')
+            .push()
+            .set(fittingData);
+
       } else {
         if (widget.topImage != null && widget.topImage != '') {
           if (widget.isFromCloset) {
@@ -297,15 +321,15 @@ class _FittingResultPageState extends State<FittingResultPage> {
             final response = await http.get(Uri.parse(originalUrl));
             final imageData = response.bodyBytes;
 
-            await resultStorageRef
-                .child('top_bottom')
-                .child('top_$fileName')
-                .putData(imageData);
+            final newRef = resultStorageRef.child('top_bottom').child('top_$fileName');
+            await newRef.putData(imageData);
+            final newUrl = await newRef.getDownloadURL();
+            fittingData['topImageUrl'] = newUrl;
           } else {
-            await resultStorageRef
-                .child('top_bottom')
-                .child('top_$fileName')
-                .putFile(widget.topImage as File);
+            final newRef = resultStorageRef.child('top_bottom').child('top_$fileName');
+            await newRef.putFile(widget.topImage as File);
+            final newUrl = await newRef.getDownloadURL();
+            fittingData['topImageUrl'] = newUrl;
           }
         }
 
@@ -315,17 +339,29 @@ class _FittingResultPageState extends State<FittingResultPage> {
             final response = await http.get(Uri.parse(originalUrl));
             final imageData = response.bodyBytes;
 
-            await resultStorageRef
-                .child('top_bottom')
-                .child('bottom_$fileName')
-                .putData(imageData);
+            final newRef = resultStorageRef.child('top_bottom').child('bottom_$fileName');
+            await newRef.putData(imageData);
+            final newUrl = await newRef.getDownloadURL();
+            fittingData['bottomImageUrl'] = newUrl;
           } else {
-            await resultStorageRef
-                .child('top_bottom')
-                .child('bottom_$fileName')
-                .putFile(widget.bottomImage as File);
+            final newRef = resultStorageRef.child('top_bottom').child('bottom_$fileName');
+            await newRef.putFile(widget.bottomImage as File);
+            final newUrl = await newRef.getDownloadURL();
+            fittingData['bottomImageUrl'] = newUrl;
           }
         }
+
+        await FirebaseDatabase.instance
+            .ref()
+            .child('users')
+            .child(_userId)
+            .child('children')
+            .child(widget.childInfo['childId'])
+            .child('fittingResults')
+            .child('category')
+            .child('top_bottom')
+            .push()
+            .set(fittingData);
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
