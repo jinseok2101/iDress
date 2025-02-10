@@ -33,12 +33,9 @@ class FittingLoadingPage extends StatefulWidget {
 }
 
 class _FittingLoadingPageState extends State<FittingLoadingPage> {
-  Future<String> _downloadImage(String url) async {
+  Future<List<int>> _downloadImageBytes(String url) async {
     final response = await http.get(Uri.parse(url));
-    final tempDir = await getTemporaryDirectory();
-    final tempFile = File('${tempDir.path}/human_image.jpg');
-    await tempFile.writeAsBytes(response.bodyBytes);
-    return tempFile.path;
+    return response.bodyBytes;
   }
 
   Future<File> _tryOn() async {
@@ -60,29 +57,47 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
     }
 
     try {
-      final humanImagePath = await _downloadImage(widget.childInfo['fullBodyImageUrl']);
+      final humanBytes = await _downloadImageBytes(widget.childInfo['fullBodyImageUrl']);
       File? tempFile;
 
       if (widget.clothType == '상의+하의') {
         final url = 'http://34.64.221.169/try-on-full-outfit';
         var request = http.MultipartRequest('POST', Uri.parse(url));
 
-        request.files.add(await http.MultipartFile.fromPath('human_image', humanImagePath));
+        request.files.add(
+            http.MultipartFile.fromBytes(
+                'human_image',
+                humanBytes,
+                filename: 'human_image.png'
+            )
+        );
 
         // 상의 이미지 처리
         if (widget.topImage != null) {
           request.files.add(await http.MultipartFile.fromPath('top_image', widget.topImage.path));
         } else if (widget.topImageUrl != null) {
-          final topImagePath = await _downloadImage(widget.topImageUrl!);
-          request.files.add(await http.MultipartFile.fromPath('top_image', topImagePath));
+          final bytes = await _downloadImageBytes(widget.topImageUrl!);
+          request.files.add(
+              http.MultipartFile.fromBytes(
+                  'top_image',
+                  bytes,
+                  filename: 'top_image.png'
+              )
+          );
         }
 
         // 하의 이미지 처리
         if (widget.bottomImage != null) {
           request.files.add(await http.MultipartFile.fromPath('bottom_image', widget.bottomImage.path));
         } else if (widget.bottomImageUrl != null) {
-          final bottomImagePath = await _downloadImage(widget.bottomImageUrl!);
-          request.files.add(await http.MultipartFile.fromPath('bottom_image', bottomImagePath));
+          final bytes = await _downloadImageBytes(widget.bottomImageUrl!);
+          request.files.add(
+              http.MultipartFile.fromBytes(
+                  'bottom_image',
+                  bytes,
+                  filename: 'bottom_image.png'
+              )
+          );
         }
 
         final response = await request.send();
@@ -97,22 +112,37 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
         final url = 'http://34.64.221.169/try-on';
         var request = http.MultipartRequest('POST', Uri.parse(url));
 
-        request.files.add(await http.MultipartFile.fromPath('human_image', humanImagePath));
+        request.files.add(
+            http.MultipartFile.fromBytes(
+                'human_image',
+                humanBytes,
+                filename: 'human_image.png'
+            )
+        );
 
         // 단일 의류 처리
-        String? imagePath;
         if (widget.topImage != null) {
-          imagePath = widget.topImage.path;
+          request.files.add(await http.MultipartFile.fromPath('garment_image', widget.topImage.path));
         } else if (widget.bottomImage != null) {
-          imagePath = widget.bottomImage.path;
+          request.files.add(await http.MultipartFile.fromPath('garment_image', widget.bottomImage.path));
         } else if (widget.topImageUrl != null) {
-          imagePath = await _downloadImage(widget.topImageUrl!);
+          final bytes = await _downloadImageBytes(widget.topImageUrl!);
+          request.files.add(
+              http.MultipartFile.fromBytes(
+                  'garment_image',
+                  bytes,
+                  filename: 'garment_image.png'
+              )
+          );
         } else if (widget.bottomImageUrl != null) {
-          imagePath = await _downloadImage(widget.bottomImageUrl!);
-        }
-
-        if (imagePath != null) {
-          request.files.add(await http.MultipartFile.fromPath('garment_image', imagePath));
+          final bytes = await _downloadImageBytes(widget.bottomImageUrl!);
+          request.files.add(
+              http.MultipartFile.fromBytes(
+                  'garment_image',
+                  bytes,
+                  filename: 'garment_image.png'
+              )
+          );
         }
 
         String serverClothType = widget.clothType == '하의' ? 'lower_body' :
@@ -133,6 +163,7 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
       }
 
       return tempFile;
+
     } catch (e) {
       print('에러 발생: $e');
       rethrow;
@@ -149,16 +180,28 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
         if (widget.topImage != null) {
           request.files.add(await http.MultipartFile.fromPath('top_image', widget.topImage.path));
         } else if (widget.topImageUrl != null) {
-          final topImagePath = await _downloadImage(widget.topImageUrl!);
-          request.files.add(await http.MultipartFile.fromPath('top_image', topImagePath));
+          final bytes = await _downloadImageBytes(widget.topImageUrl!);
+          request.files.add(
+              http.MultipartFile.fromBytes(
+                  'top_image',
+                  bytes,
+                  filename: 'top_image.png'
+              )
+          );
         }
 
         // 하의 이미지 처리
         if (widget.bottomImage != null) {
           request.files.add(await http.MultipartFile.fromPath('bottom_image', widget.bottomImage.path));
         } else if (widget.bottomImageUrl != null) {
-          final bottomImagePath = await _downloadImage(widget.bottomImageUrl!);
-          request.files.add(await http.MultipartFile.fromPath('bottom_image', bottomImagePath));
+          final bytes = await _downloadImageBytes(widget.bottomImageUrl!);
+          request.files.add(
+              http.MultipartFile.fromBytes(
+                  'bottom_image',
+                  bytes,
+                  filename: 'bottom_image.png'
+              )
+          );
         }
 
         final response = await request.send();
@@ -169,23 +212,33 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
         final responseBody = await response.stream.bytesToString();
         final Map<String, dynamic> jsonResponse = json.decode(responseBody);
         return List<String>.from(jsonResponse['similar_items']);
+
       } else {
         final url = 'http://34.64.221.169/search-similar';
         var request = http.MultipartRequest('POST', Uri.parse(url));
 
-        String? imagePath;
         if (widget.topImage != null) {
-          imagePath = widget.topImage.path;
+          request.files.add(await http.MultipartFile.fromPath('garment_image', widget.topImage.path));
         } else if (widget.bottomImage != null) {
-          imagePath = widget.bottomImage.path;
+          request.files.add(await http.MultipartFile.fromPath('garment_image', widget.bottomImage.path));
         } else if (widget.topImageUrl != null) {
-          imagePath = await _downloadImage(widget.topImageUrl!);
+          final bytes = await _downloadImageBytes(widget.topImageUrl!);
+          request.files.add(
+              http.MultipartFile.fromBytes(
+                  'garment_image',
+                  bytes,
+                  filename: 'garment_image.png'
+              )
+          );
         } else if (widget.bottomImageUrl != null) {
-          imagePath = await _downloadImage(widget.bottomImageUrl!);
-        }
-
-        if (imagePath != null) {
-          request.files.add(await http.MultipartFile.fromPath('garment_image', imagePath));
+          final bytes = await _downloadImageBytes(widget.bottomImageUrl!);
+          request.files.add(
+              http.MultipartFile.fromBytes(
+                  'garment_image',
+                  bytes,
+                  filename: 'garment_image.png'
+              )
+          );
         }
 
         String serverClothType = widget.clothType == '하의' ? 'lower_body' :
@@ -221,8 +274,8 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
             MaterialPageRoute(
               builder: (context) => FittingResultPage(
                 childInfo: widget.childInfo,
-                topImage: widget.topImage,
-                bottomImage: widget.bottomImage,
+                topImage: widget.topImage ?? widget.topImageUrl,
+                bottomImage: widget.bottomImage ?? widget.bottomImageUrl,
                 processedImage: processedImage,
                 recommendedItems: recommendedItems,
                 isOnepiece: widget.isOnepiece,

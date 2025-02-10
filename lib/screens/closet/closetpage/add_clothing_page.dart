@@ -265,7 +265,7 @@ class _AddClothingPageState extends State<AddClothingPage> {
           try {
             // 서버 연결 상태 확인 (3초 타임아웃)
             final response = await http
-                .get(Uri.parse('http://334.64.221.169/upload'))
+                .get(Uri.parse('http://34.64.221.169/upload'))
                 .timeout(Duration(seconds: 3));
 
             if (response.statusCode != 404) {  // 서버가 응답하면
