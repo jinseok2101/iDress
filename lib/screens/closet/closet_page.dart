@@ -249,7 +249,7 @@ class _ClosetPageState extends State<ClosetPage> {
                         children: [
                           WeatherWidget(),
                           SizedBox(height: 4),
-                          SchoolScheduleWidget(),
+                          //SchoolScheduleWidget(),
                         ],
                       ),
                     ),
