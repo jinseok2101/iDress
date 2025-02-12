@@ -61,7 +61,7 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
       File? tempFile;
 
       if (widget.clothType == '상의+하의') {
-        final url = 'http://34.64.221.169/try-on-full-outfit';
+        final url = 'http://34.64.72.171/try-on-full-outfit';
         var request = http.MultipartRequest('POST', Uri.parse(url));
 
         request.files.add(
@@ -109,7 +109,7 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
         tempFile = File('${tempDir.path}/result.png');
         await response.stream.pipe(tempFile.openWrite());
       } else {
-        final url = 'http://34.64.221.169/try-on';
+        final url = 'http://34.64.72.171/try-on';
         var request = http.MultipartRequest('POST', Uri.parse(url));
 
         request.files.add(
@@ -173,7 +173,7 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
   Future<List<String>> _recommand() async {
     try {
       if (widget.clothType == '상의+하의') {
-        final url = 'http://34.64.221.169/search-similar-full';
+        final url = 'http://34.64.72.171/search-similar-full';
         var request = http.MultipartRequest('POST', Uri.parse(url));
 
         // 상의 이미지 처리
@@ -214,7 +214,7 @@ class _FittingLoadingPageState extends State<FittingLoadingPage> {
         return List<String>.from(jsonResponse['similar_items']);
 
       } else {
-        final url = 'http://34.64.221.169/search-similar';
+        final url = 'http://34.64.72.171/search-similar';
         var request = http.MultipartRequest('POST', Uri.parse(url));
 
         if (widget.topImage != null) {

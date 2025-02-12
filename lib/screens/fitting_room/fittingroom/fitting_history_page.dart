@@ -19,7 +19,7 @@ class FittingHistoryPage extends StatefulWidget {
 
 class _FittingHistoryPageState extends State<FittingHistoryPage> {
   String _selectedFilter = '전체';
-  final List<String> _filterOptions = ['전체', '원피스', '상하의'];
+  final List<String> _filterOptions = ['전체', '올인원', '상하의'];
 
   @override
   Widget build(BuildContext context) {
@@ -243,7 +243,7 @@ class _HistoryListTabState extends State<HistoryListTab>
     // 필터링
     var filteredHistories = histories.where((entry) {
       if (widget.filter == '전체') return true;
-      if (widget.filter == '원피스') return entry.value['category'] == 'set';
+      if (widget.filter == '올인원') return entry.value['category'] == 'set';
       if (widget.filter == '상하의') return entry.value['category'] == 'top_bottom';
       return true;
     }).toList();
