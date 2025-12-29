@@ -25,5 +25,4 @@
 Flutter
 Firebase Realtime Database / Storage
 Dart
-Gemini / OpenAI 기반 이미지 분석
-Clean Architecture (presentation – domain – data)
+Gemini 기반 이미지 분석
