@@ -1,16 +1,14 @@
-# closet_app
+👶 iDress – 우리아이옷장
 
-A new Flutter project.
+유아·아동 의류를 관리하고 가상 피팅을 통해 아이에게 어울리는 스타일을 손쉽게 확인할 수 있는 모바일 애플리케이션입니다.
+부모가 자녀별 옷장을 따로 관리할 수 있으며, 옷 이미지 업로드 시 AI 분석을 통해 자동 카테고리 분류가 이루어지는 것이 핵심 기능입니다.
 
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+📌 주요 기능
+기능	설명
+🧸 자녀별 옷장 관리	Child1, Child2… 아이별로 옷 아이템을 분리 관리
+🏷 옷 카테고리 필터링	상의/하의/원피스/외투 등 카테고리별 조회 및 필터링
+📤 AI 자동 분석	옷 이미지 업로드 시 AI가 카테고리 자동 분류
+🗂 옷 검색 기능	이름, 카테고리 기반 빠른 검색
+🗑 옷 삭제/수정/추가	Firebase 기반 실시간 반영
+🧥 가상 피팅룸 UI	옷을 선택해 아이에게 입혀볼 수 있는 화면 구성 (배경 제거 기능 향후 업데이트 예정)
+☁️ 클라우드 저장	Firebase Realtime Database & Storage 활용
