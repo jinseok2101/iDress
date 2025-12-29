@@ -19,10 +19,15 @@
 
 ---
 
-## 🧱 기술 스택
+## 🛠 기술 스택
 
-```bash
-Flutter
-Firebase Realtime Database / Storage
-Dart
-Gemini 기반 이미지 분석
+| 분야 | 기술 |
+|------|------|
+| **언어** | Dart |
+| **프레임워크** | Flutter + FastAPI |
+| **프론트엔드** | Flutter (Mobile UI/UX – REST API 통신) |
+| **백엔드** | Python |
+| **데이터베이스 & 인증** | Firebase |
+| **AI 서비스** | Gemini API + Hugging Face |
+| **검색 엔진** | Qdrant |
+| **클라우드 플랫폼** | Google Cloud Platform(GCP) |
