@@ -5,7 +5,14 @@
 
 ---
 
-## 팀원
+## 👥 Team Members
+
+| 이름 | 포지션 | 주요 기여 |
+|------|--------|-----------|
+| 이진석 | Frontend / Backend | 앱 전체 UI 구현, 서버 및 데이터 구조 설계 |
+| 홍길동 | Backend | FastAPI 기반 API 및 AI 로직 개발 |
+| 김철수 | Designer | 사용자 흐름 기반 UI/UX 설계 |
+
 
 
 ##  주요 기능
