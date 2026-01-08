@@ -32,6 +32,6 @@
 | **검색 엔진** | Qdrant |
 | **클라우드 플랫폼** | Google Cloud Platform(GCP) |
 
-## 🎥 Demo Video
+## 🎥 시연 영상
 
 [![Demo Video](https://img.youtube.com/vi/8ebOLxhSA3Y/0.jpg)](https://www.youtube.com/watch?v=8ebOLxhSA3Y)
