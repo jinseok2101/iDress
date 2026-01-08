@@ -31,3 +31,7 @@
 | **AI 서비스** | Gemini API + Hugging Face |
 | **검색 엔진** | Qdrant |
 | **클라우드 플랫폼** | Google Cloud Platform(GCP) |
+
+## 🎬 Demo Video
+
+[![iDress Demo Video](https://img.youtube.com/vi/YOUR_VIDEO_ID/0.jpg)](https://www.youtube.com/watch?v=8ebOLxhSA3Y)
