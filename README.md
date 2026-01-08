@@ -20,8 +20,8 @@
 ## 🧩 시스템 아키텍처
 
 <p align="center">
-  <a href="./assets/architecture.png">
-    <img src="./assets/architecture.png" alt="System Architecture" width="700"/>
+  <a href="./assets/images/architecture.png">
+    <img src="./assets/images/architecture.png" alt="System Architecture" width="700"/>
   </a>
 </p>
 
