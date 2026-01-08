@@ -22,6 +22,7 @@
 <p align="center">
   <a href="./assets/images/architecture.png">
     <img src="./assets/images/architecture.png" alt="System Architecture" width="700"/>
+    <img src="./assets/images/architecture2.png" alt="System Architecture" width="700"/>
   </a>
 </p>
 
