@@ -5,15 +5,16 @@
 
 ---
 
-## 👥 Team Members
+## 👥 팀원
 
 | 이름 | 포지션 | 주요 기여 |
 |------|--------|-----------|
-| 이진석 | Frontend / Backend | 앱 전체 UI 구현, 서버 및 데이터 구조 설계 |
-| 홍길동 | Backend | FastAPI 기반 API 및 AI 로직 개발 |
-| 김철수 | Designer | 사용자 흐름 기반 UI/UX 설계 |
-
-
+| 이진석 | Frontend / Backend | 앱 전체 UI 구현, 옷장 카테고리 필터링, AI 자동 이미지 분석, DB 구조 설계 |
+| 이승찬 | Team Lead / PM | 위치 기반 날씨 연동 의류 추천 기능 구현, 발표 및 프로젝트 총괄 |
+| 구보회 | Backend | Python 기반 서버 개발, Hugging Face API를 활용한 가상 피팅 기능 구현 |
+| 염동빈 | Backend | Python 서버 및 가상 피팅 기능 구현, 앱 연동 API 개발 |
+| 서유정 | Frontend | Firebase Auth 기반 로그인·회원가입 기능 구현 |
+| 박정연 | Frontend | 앱 UI 구현 및 전반적인 오류 수정 |
 
 ##  주요 기능
 
