@@ -43,7 +43,7 @@
 | **협업 도구** | Git, Google Cloud, Figma |
 
 
-🎨 **UI/UX Design (Figma)**  
+## 🎨 UI/UX Design (Figma) 
 👉 [디자인 시안 확인하기](https://www.figma.com/design/9PPMqKro2PIpiOZuxsXlmZ/%EC%B5%9C%EC%A2%85%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8-UI?node-id=0-1&p=f)
 
 
