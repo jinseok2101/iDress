@@ -41,6 +41,11 @@
 | **검색 엔진** | Qdrant |
 | **클라우드 플랫폼** | Google Cloud Platform(GCP) |
 
+## 🎨 UI / UX Design (Figma)
+
+👉 [https://www.figma.com/file/XXXXXXX](https://www.figma.com/design/9PPMqKro2PIpiOZuxsXlmZ/%EC%B5%9C%EC%A2%85%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8-UI?node-id=0-1&p=f)
+
+
 ## 🎥 시연 영상
 
 [![Demo Video](https://img.youtube.com/vi/8ebOLxhSA3Y/0.jpg)](https://www.youtube.com/watch?v=8ebOLxhSA3Y)
