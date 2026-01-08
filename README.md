@@ -32,6 +32,6 @@
 | **검색 엔진** | Qdrant |
 | **클라우드 플랫폼** | Google Cloud Platform(GCP) |
 
-## 🎬 Demo Video
+## 🎥 Demo Video
 
-[![iDress Demo Video]](https://www.youtube.com/watch?v=8ebOLxhSA3Y)
+[![Demo Video](https://img.youtube.com/vi/8ebOLxhSA3Y/0.jpg)](https://www.youtube.com/watch?v=8ebOLxhSA3Y)
