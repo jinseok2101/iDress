@@ -17,7 +17,14 @@
 | 🧥 가상 피팅룸 UI | 선택한 옷을 아동 이미지 위에 배치하여 착용 미리보기 |
 | ☁ 클라우드 저장 | Firebase Storage로 이미지 저장 |
 
----
+## 🧩 System Architecture
+
+<p align="center">
+  <a href="./assets/architecture.png">
+    <img src="./assets/architecture.png" alt="System Architecture" width="700"/>
+  </a>
+</p>
+
 
 ## 🛠 기술 스택
 
