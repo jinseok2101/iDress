@@ -5,7 +5,7 @@
 
 ---
 
-## 📌 주요 기능
+##  주요 기능
 
 | 기능 | 설명 |
 |------|------|
@@ -18,7 +18,7 @@
 |  클라우드 저장 | Firebase Storage로 이미지 저장 |
 |  날씨에 따른 옷 추천 | Geolocator 기반 위치 정보를 활용해 현재 날씨에 맞는 의류 카테고리를 추천 |
 
-## 🧩 시스템 아키텍처
+##  시스템 아키텍처
 
 <p align="center">
   <a href="./assets/images/architecture.png">
@@ -46,6 +46,6 @@
 👉 https://www.figma.com/design/9PPMqKro2PIpiOZuxsXlmZ/%EC%B5%9C%EC%A2%85%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8-UI?node-id=0-1&p=f
 
 
-## 🎥 시연 영상
+##  시연 영상
 
 [![Demo Video](https://img.youtube.com/vi/8ebOLxhSA3Y/0.jpg)](https://www.youtube.com/watch?v=8ebOLxhSA3Y)
