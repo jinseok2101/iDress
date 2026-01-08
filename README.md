@@ -9,7 +9,7 @@
 
 | 이름 | 포지션 | 주요 기여 |
 |------|--------|-----------|
-| 이진석 | Frontend / Backend | 앱 전체 UI 구현, 옷장 카테고리 필터링, AI 자동 이미지 분석, DB 구조 설계 |
+| **이진석** | Frontend / Backend | 앱 전체 UI 구현, 옷장 카테고리 필터링, AI 자동 이미지 분석, DB 구조 설계 |
 | 이승찬 | Team Lead / PM | 위치 기반 날씨 연동 의류 추천 기능 구현, 발표 및 프로젝트 총괄 |
 | 구보회 | Backend | Python 기반 서버 개발, Hugging Face API를 활용한 가상 피팅 기능 구현 |
 | 염동빈 | Backend | Python 서버 및 가상 피팅 기능 구현, 앱 연동 API 개발 |
