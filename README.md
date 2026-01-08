@@ -16,7 +16,7 @@
 |  옷 검색 기능 | 이름 및 태그 기반 실시간 검색 |
 |  옷 추가/삭제/수정/즐겨찾기 | Firebase Realtime Database 기반 실시간 동기화 |
 |  클라우드 저장 | Firebase Storage로 이미지 저장 |
-|  날씨에 따른 옷 추천 | Firebase Storage로 이미지 저장 |
+|  날씨에 따른 옷 추천 | Geolocator 기반 위치 정보를 활용해 현재 날씨에 맞는 의류 카테고리를 추천 |
 
 ## 🧩 시스템 아키텍처
 
